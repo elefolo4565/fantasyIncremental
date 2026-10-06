@@ -7,12 +7,11 @@ extends Breakable
 signal touched_player(slime: Slime)
 
 const RADIUS := 34.0
-const BODY_COLOR := Color(0.45, 0.7, 0.95)
-const SHADE_COLOR := Color(0.3, 0.5, 0.78)
-const EYE_COLOR := Color(0.1, 0.1, 0.18)
-const CHASE_COLOR := Color(1.0, 0.45, 0.4)
+const BODY_COLOR := Color(0.3, 0.78, 1.0)
+const CHASE_BODY := Color(1.0, 0.45, 0.62)
+const HP_BAR_COLOR := Color(1.0, 0.3, 0.3)
 const EDGE_MARGIN := 40.0
-const TOP_MARGIN := 100.0
+const TOP_MARGIN := 140.0
 const SPAWN_TRIES := 30
 
 ## 生成する側が add_child の前に入れる
@@ -68,6 +67,10 @@ func _choose_direction(delta: float) -> Vector2:
 	return _wander
 
 
+func _bar_color() -> Color:
+	return HP_BAR_COLOR
+
+
 func _respawn() -> void:
 	if _placed and target != null:
 		position = _far_spot()
@@ -92,19 +95,19 @@ func _far_spot() -> Vector2:
 
 
 func _draw_body(flash_amount: float) -> void:
-	var squash := 1.0 + sin(_bob * 8.0) * 0.06
-	var size := Vector2(RADIUS * squash, RADIUS / squash)
-	var points := PackedVector2Array()
-	for i in 24:
-		var angle := TAU * i / 24.0
-		var point := Vector2(cos(angle) * size.x, sin(angle) * size.y)
-		if point.y > 0.0:
-			point.y *= 0.75
-		points.append(point + Vector2(0, 4))
-	draw_colored_polygon(points, SHADE_COLOR.lerp(FLASH_COLOR, flash_amount))
-	draw_circle(Vector2(0, -2), RADIUS * 0.78, BODY_COLOR.lerp(FLASH_COLOR, flash_amount))
-	var eye_color := CHASE_COLOR if _chasing else EYE_COLOR
-	draw_circle(Vector2(-12, -21), 4.0, eye_color)
-	draw_circle(Vector2(12, -21), 4.0, eye_color)
-	points.append(points[0])
-	draw_polyline(points, OUTLINE_COLOR, 3.0)
+	var squash := 1.0 + sin(_bob * 8.0) * 0.07
+	var size := Vector2(RADIUS * squash, RADIUS * 0.82 / squash)
+	var center := Vector2(0, RADIUS - size.y - 2.0)
+	Toon.shadow(self, Vector2(0, RADIUS - 4.0), Vector2(RADIUS * 0.95, RADIUS * 0.32))
+	var body := (CHASE_BODY if _chasing else BODY_COLOR).lerp(FLASH_COLOR, flash_amount)
+	Toon.shaded_blob(self, center, size, body)
+	var look := Vector2.ZERO
+	if target != null:
+		look = global_position.direction_to(target.global_position)
+	var eye_y := center.y - size.y * 0.15
+	Toon.eye(self, Vector2(-12, eye_y), 8.0, look)
+	Toon.eye(self, Vector2(12, eye_y), 8.0, look)
+	if _chasing:
+		draw_line(Vector2(-21, eye_y - 13), Vector2(-5, eye_y - 7), Toon.OUTLINE, 4.0)
+		draw_line(Vector2(21, eye_y - 13), Vector2(5, eye_y - 7), Toon.OUTLINE, 4.0)
+	draw_arc(Vector2(0, eye_y + 12), 6.0, 0.2, PI - 0.2, 8, Toon.OUTLINE, 3.0)

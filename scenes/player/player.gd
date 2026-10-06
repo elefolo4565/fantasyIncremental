@@ -9,8 +9,14 @@ signal died
 
 const BOLT_SCENE := preload("res://scenes/bolt/bolt.tscn")
 const RADIUS := 20.0
-const COLOR := Color(0.95, 0.85, 0.4)
+const ROBE_COLOR := Color(0.55, 0.3, 0.95)
+const HAT_COLOR := Color(0.32, 0.25, 0.85)
+const BAND_COLOR := Color(1.0, 0.8, 0.15)
+const SKIN_COLOR := Color(1.0, 0.82, 0.66)
+const STAFF_COLOR := Color(0.6, 0.38, 0.2)
+const GEM_COLOR := Color(0.4, 0.95, 1.0)
 const HURT_COLOR := Color(1.0, 0.35, 0.3)
+const DRAW_SCALE := 1.35
 const BLINK_RATE := 18.0
 
 var stick: VirtualStick
@@ -20,6 +26,8 @@ var hp := 1
 var _fire_cooldown := 0.0
 var _invincible := 0.0
 var _knockback := Vector2.ZERO
+var _facing := Vector2.RIGHT
+var _walk := 0.0
 var _shot_count := 0
 
 
@@ -50,7 +58,12 @@ func _physics_process(delta: float) -> void:
 		_invincible = maxf(_invincible - delta, 0.0)
 		queue_redraw()
 	_knockback = _knockback.move_toward(Vector2.ZERO, Balance.get_float("player_knockback") * 4.0 * delta)
-	velocity = _read_move_input() * Balance.get_float("player_speed") + _knockback
+	var move := _read_move_input()
+	if move != Vector2.ZERO:
+		_facing = move.normalized()
+		_walk += delta * 14.0
+		queue_redraw()
+	velocity = move * Balance.get_float("player_speed") + _knockback
 	move_and_slide()
 	var area := get_viewport_rect().size
 	global_position = global_position.clamp(Vector2(RADIUS, RADIUS), area - Vector2(RADIUS, RADIUS))
@@ -65,11 +78,29 @@ func _physics_process(delta: float) -> void:
 
 
 func _draw() -> void:
-	if _invincible > 0.0 and int(_invincible * BLINK_RATE) % 2 == 0:
-		draw_circle(Vector2.ZERO, RADIUS, HURT_COLOR)
-		return
-	draw_circle(Vector2.ZERO, RADIUS, COLOR)
-	draw_arc(Vector2.ZERO, RADIUS, 0.0, TAU, 32, Color(0.3, 0.2, 0.1), 3.0)
+	var blink := _invincible > 0.0 and int(_invincible * BLINK_RATE) % 2 == 0
+	var tint := Color.WHITE if not blink else HURT_COLOR
+	var bob := sin(_walk) * 2.5
+	var side := -1.0 if _facing.x < 0.0 else 1.0
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE * DRAW_SCALE)
+	Toon.shadow(self, Vector2(0, 22), Vector2(22, 8))
+	# 杖（体の後ろ側）
+	var staff_top := Vector2(side * 24, -30 + bob)
+	draw_line(Vector2(side * 18, 20), staff_top, Toon.OUTLINE, 9.0)
+	draw_line(Vector2(side * 18, 20), staff_top, STAFF_COLOR * tint, 4.0)
+	Toon.blob(self, staff_top, Vector2(7, 7), GEM_COLOR * tint)
+	# ローブ
+	var robe := PackedVector2Array([Vector2(-13, -2 + bob), Vector2(13, -2 + bob), Vector2(19, 22), Vector2(-19, 22)])
+	Toon.polygon(self, robe, ROBE_COLOR * tint)
+	# 大きな頭
+	var head := Vector2(0, -16 + bob)
+	Toon.blob(self, head, Vector2(17, 16), SKIN_COLOR * tint)
+	Toon.eye(self, head + Vector2(-6 + _facing.x * 3, 2), 4.0, _facing)
+	Toon.eye(self, head + Vector2(6 + _facing.x * 3, 2), 4.0, _facing)
+	# とんがり帽子
+	var hat := PackedVector2Array([head + Vector2(-22, -6), head + Vector2(22, -6), head + Vector2(-side * 6, -44)])
+	Toon.polygon(self, hat, HAT_COLOR * tint)
+	draw_line(head + Vector2(-20, -8), head + Vector2(20, -8), BAND_COLOR * tint, 6.0)
 
 
 func _read_move_input() -> Vector2:

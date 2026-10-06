@@ -17,14 +17,23 @@ const DEBRIS_SCENE := preload("res://scenes/debris/debris.tscn")
 const POPUP_SCENE := preload("res://scenes/popup_text/popup_text.tscn")
 
 const EDGE_MARGIN := 80.0
-const TOP_MARGIN := 120.0
+const TOP_MARGIN := 150.0
 const MIN_GAP := 125.0
 const SHATTER_DELAY := 0.07
-const WORLD_COLORS := {&"plains": Color(0.36, 0.6, 0.32), &"forest": Color(0.2, 0.38, 0.22)}
-const DECOR_COLORS := {&"plains": Color(0.44, 0.7, 0.36), &"forest": Color(0.15, 0.3, 0.17)}
-const SLIME_DEBRIS := Color(0.5, 0.75, 0.98)
+## 地面の市松模様の2色と、草の色（ブロスタの床のように）
+const TILE_COLORS := {
+	&"plains": [Color(0.55, 0.82, 0.36), Color(0.5, 0.76, 0.33)],
+	&"forest": [Color(0.3, 0.6, 0.32), Color(0.27, 0.55, 0.29)],
+}
+const DECOR_COLORS := {&"plains": Color(0.36, 0.62, 0.24), &"forest": Color(0.17, 0.4, 0.2)}
+const FLOWER_COLORS := [Color(1.0, 0.85, 0.25), Color(1.0, 0.5, 0.65), Color(1, 1, 1)]
+const TILE_SIZE := 64.0
+const SHAKE_DECAY := 30.0
+const SHAKE_ON_BREAK := 5.0
+const SHAKE_ON_HURT := 10.0
+const SLIME_DEBRIS := Color(0.3, 0.78, 1.0)
 const OAK_DEBRIS := Color(0.4, 0.7, 0.35)
-const GEM_COLOR := Color(0.85, 0.85, 0.9)
+const GEM_COLOR := Color(1.0, 0.55, 0.95)
 const HURT_COLOR := Color(1.0, 0.4, 0.35)
 const WOOD_COLOR := Color(0.95, 0.75, 0.45)
 const DECOR_COUNT := 60
@@ -45,6 +54,7 @@ var _unlocked := false
 var _player: Player
 var _ring: SpiritRing
 var _decor: Array[Vector2] = []
+var _shake := 0.0
 
 @onready var _world: Node2D = $World
 @onready var _stick: VirtualStick = $HUD/VirtualStick
@@ -63,6 +73,7 @@ func _ready() -> void:
 	_stage = Progress.stages[clampi(stage_index, 0, Progress.stages.size() - 1)]
 	_time_left = Stats.run_time(Progress.levels)
 	_result_panel.visible = false
+	_apply_styles()
 	_banner.visible = false
 	_back_button.pressed.connect(_on_back_pressed)
 
@@ -88,7 +99,20 @@ func _ready() -> void:
 	_update_hud()
 
 
+func _apply_styles() -> void:
+	UiStyle.button(_back_button, UiStyle.YELLOW)
+	_result_panel.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.PANEL, 20, 5, 8))
+	for label: Label in [_info_label, _material_label, _ring_label, _banner, _result_title, _result_body]:
+		UiStyle.outline_label(label, 10)
+	_ring_bar.add_theme_stylebox_override("background", UiStyle.box(Color(0.15, 0.15, 0.25), 8, 4, 0))
+	var fill := UiStyle.box(SpiritRing.ORB_COLOR, 8, 0, 0)
+	fill.set_content_margin_all(0.0)
+	_ring_bar.add_theme_stylebox_override("fill", fill)
+
+
 func _process(delta: float) -> void:
+	_shake = maxf(_shake - SHAKE_DECAY * delta, 0.0)
+	position = Vector2(randf_range(-_shake, _shake), randf_range(-_shake, _shake))
 	if _over:
 		return
 	_time_left = maxf(_time_left - delta, 0.0)
@@ -99,6 +123,7 @@ func _process(delta: float) -> void:
 
 func _on_player_hurt() -> void:
 	Sfx.play(&"hurt")
+	_shake = SHAKE_ON_HURT
 	_popup(_player.global_position + Vector2(0, -30), "-%d" % Balance.get_int("slime_contact_damage"), HURT_COLOR, 30)
 	_update_hud()
 
@@ -116,12 +141,25 @@ func _on_slime_touched(slime: Slime) -> void:
 
 
 func _draw() -> void:
-	var area := get_viewport_rect()
-	draw_rect(area, WORLD_COLORS.get(_stage.world, Color.DIM_GRAY))
+	var area := get_viewport_rect().grow(16.0)
+	var tiles: Array = TILE_COLORS.get(_stage.world, [Color.DIM_GRAY, Color.GRAY])
+	draw_rect(area, tiles[0])
+	var cols := ceili(area.size.x / TILE_SIZE) + 1
+	var rows := ceili(area.size.y / TILE_SIZE) + 1
+	for y in rows:
+		for x in cols:
+			if (x + y) % 2 == 1:
+				draw_rect(Rect2(area.position + Vector2(x, y) * TILE_SIZE, Vector2.ONE * TILE_SIZE), tiles[1])
 	var decor: Color = DECOR_COLORS.get(_stage.world, Color.GRAY)
-	for spot in _decor:
-		draw_line(spot, spot + Vector2(-4, -10), decor, 3.0)
-		draw_line(spot, spot + Vector2(4, -9), decor, 3.0)
+	for i in _decor.size():
+		var spot := _decor[i]
+		if i % 5 == 0:
+			draw_circle(spot, 6.0, Toon.OUTLINE)
+			draw_circle(spot, 4.0, FLOWER_COLORS[i % FLOWER_COLORS.size()])
+		else:
+			draw_line(spot, spot + Vector2(-5, -11), decor, 4.0)
+			draw_line(spot, spot + Vector2(0, -14), decor, 4.0)
+			draw_line(spot, spot + Vector2(5, -11), decor, 4.0)
 
 
 func _spawn(scene: PackedScene, base_hp: int, reward: int, area: Vector2, taken: Array[Vector2]) -> void:
@@ -160,6 +198,7 @@ func _on_broken(target: Breakable) -> void:
 		return
 	var at := target.global_position
 	_broken_count += 1
+	_shake = maxf(_shake, SHAKE_ON_BREAK)
 	var is_slime := target.kind() == Stats.SLIME
 	if is_slime:
 		_gained_gem += target.reward

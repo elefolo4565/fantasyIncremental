@@ -7,9 +7,11 @@ signal broken(target: Breakable)
 
 const GROUP := &"breakable"
 const FLASH_COLOR := Color(1.0, 0.95, 0.8)
-const FLASH_TIME := 0.08
-const BAR_COLOR := Color(1.0, 0.8, 0.3)
-const OUTLINE_COLOR := Color(0.2, 0.17, 0.15)
+const FLASH_TIME := 0.12
+const BAR_COLOR := Color(1.0, 0.82, 0.2)
+const BAR_BACK := Color(0.25, 0.2, 0.3)
+const OUTLINE_COLOR := Toon.OUTLINE
+const POP_SCALE := Vector2(0.18, 0.12)
 
 ## 生成する側が add_child の前に入れる
 var base_hp := 1
@@ -102,13 +104,19 @@ func _respawn() -> void:
 
 
 func _draw() -> void:
-	_draw_body(_flash / FLASH_TIME)
 	var r := radius()
-	var bar := Rect2(-r, r + 8.0, r * 2.0, 6.0)
-	draw_rect(bar, Color(0, 0, 0, 0.5))
-	draw_rect(Rect2(bar.position, Vector2(bar.size.x * float(hp) / maxi(max_hp, 1), bar.size.y)), BAR_COLOR)
-	var font := ThemeDB.fallback_font
-	var text := str(hits_left())
-	var at := Vector2(-r, 10.0)
-	draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, 28, 6, Color(0, 0, 0, 0.6))
-	draw_string(font, at, text, HORIZONTAL_ALIGNMENT_CENTER, r * 2.0, 28, Color.WHITE)
+	var pop := _flash / FLASH_TIME
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0 + pop * POP_SCALE.x, 1.0 - pop * POP_SCALE.y))
+	_draw_body(pop)
+	draw_set_transform(Vector2.ZERO)
+	# 頭の上に「あと何発で倒せるか」を、耐久のバーに重ねて出す（ブロスタの体力表示ふう）
+	var bar := Rect2(-r * 0.85, -r - 34.0, r * 1.7, 24.0)
+	draw_rect(bar.grow(3.0), Toon.OUTLINE)
+	draw_rect(bar, BAR_BACK)
+	draw_rect(Rect2(bar.position, Vector2(bar.size.x * float(hp) / maxi(max_hp, 1), bar.size.y)), _bar_color())
+	Toon.label(self, Vector2(0, bar.end.y - 3.0), str(hits_left()), 24, Color.WHITE, r * 2.0)
+
+
+## 子クラスで上書きできる。耐久のバーの色。
+func _bar_color() -> Color:
+	return BAR_COLOR

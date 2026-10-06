@@ -10,15 +10,17 @@ const NODE_SIZE := Vector2(116, 64)
 const SIDE_WIDTH := 456.0
 const HEADER_HEIGHT := 64.0
 const FOOTER_HEIGHT := 56.0
-const BG_COLOR := Color(0.1, 0.11, 0.16)
-const LINE_ON := Color(0.95, 0.8, 0.4)
-const LINE_OFF := Color(0.35, 0.36, 0.45)
+const BG_COLOR := Color(0.16, 0.36, 0.86)
+const STRIPE_COLOR := Color(0.2, 0.42, 0.93)
+const STRIPE_WIDTH := 48.0
+const LINE_ON := Color(1.0, 0.82, 0.2)
+const LINE_OFF := Color(0.1, 0.18, 0.45)
 const SELECT_COLOR := Color(1, 1, 1)
-const MAXED_COLOR := Color(0.78, 0.6, 0.18)
-const READY_COLOR := Color(0.22, 0.55, 0.27)
-const OPEN_COLOR := Color(0.22, 0.27, 0.42)
-const LOCKED_COLOR := Color(0.15, 0.15, 0.19)
-const LOCKED_TEXT := Color(0.5, 0.5, 0.56)
+const MAXED_COLOR := Color(1.0, 0.72, 0.1)
+const READY_COLOR := Color(0.3, 0.85, 0.3)
+const OPEN_COLOR := Color(0.45, 0.55, 0.85)
+const LOCKED_COLOR := Color(0.24, 0.27, 0.42)
+const LOCKED_TEXT := Color(0.62, 0.65, 0.78)
 const POP_COLOR := Color(1.0, 0.85, 0.3)
 const POP_TIME := 1.1
 
@@ -56,6 +58,7 @@ func _ready() -> void:
 		button.pressed.connect(_on_node_pressed.bind(def))
 		_nodes.add_child(button)
 		_buttons[def.id] = button
+	_apply_styles()
 	_buy_button.pressed.connect(_on_buy_pressed)
 	_prev_button.pressed.connect(_change_stage.bind(-1))
 	_next_button.pressed.connect(_change_stage.bind(1))
@@ -73,16 +76,38 @@ func _ready() -> void:
 	_refresh()
 
 
+func _apply_styles() -> void:
+	UiStyle.button(_buy_button, UiStyle.GREEN)
+	UiStyle.button(_start_button, UiStyle.YELLOW)
+	UiStyle.button(_prev_button, UiStyle.BLUE)
+	UiStyle.button(_next_button, UiStyle.BLUE)
+	UiStyle.button(_reset_button, Color(0.85, 0.3, 0.3))
+	for panel: PanelContainer in [$Side/Detail, $Side/StagePanel]:
+		panel.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.PANEL, 16, 4, 6))
+	for label: Label in [$Title, _material_label, _name_label, _level_label, _desc_label, _cost_label,
+			_preview_label, _stage_label, _stage_info]:
+		UiStyle.outline_label(label)
+
+
 func _draw() -> void:
+	# ブロスタのメニューのような斜めの縞
 	draw_rect(Rect2(Vector2.ZERO, size), BG_COLOR)
+	var stripes := ceili((size.x + size.y) / (STRIPE_WIDTH * 2.0))
+	for i in stripes:
+		var x := i * STRIPE_WIDTH * 2.0
+		draw_colored_polygon(PackedVector2Array([Vector2(x, 0), Vector2(x + STRIPE_WIDTH, 0),
+				Vector2(x + STRIPE_WIDTH - size.y, size.y), Vector2(x - size.y, size.y)]), STRIPE_COLOR)
 	for def in Progress.upgrades:
 		if def.parent == &"" or Progress.upgrade(def.parent) == null:
 			continue
 		var color := LINE_ON if Progress.is_unlocked(def) else LINE_OFF
-		draw_line(_node_center(Progress.upgrade(def.parent)), _node_center(def), color, 5.0)
+		var from := _node_center(Progress.upgrade(def.parent))
+		draw_line(from, _node_center(def), UiStyle.OUTLINE, 14.0)
+		draw_line(from, _node_center(def), color, 7.0)
 	if _selected != null:
 		var rect := Rect2(_node_center(_selected) - NODE_SIZE * 0.5, NODE_SIZE).grow(6.0)
-		draw_rect(rect, SELECT_COLOR, false, 3.0)
+		draw_rect(rect.grow(3.0), UiStyle.OUTLINE, false, 4.0)
+		draw_rect(rect, SELECT_COLOR, false, 4.0)
 
 
 func _node_center(def: UpgradeDef) -> Vector2:
@@ -90,12 +115,7 @@ func _node_center(def: UpgradeDef) -> Vector2:
 
 
 func _make_style(color: Color) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = color
-	style.border_color = color.lightened(0.35)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(10)
-	return style
+	return UiStyle.box(color, 12, 4, 5)
 
 
 ## 魔導樹を、右の説明欄を除いた場所の真ん中に置く。
@@ -128,6 +148,8 @@ func _refresh() -> void:
 		var text_color := LOCKED_TEXT if color == LOCKED_COLOR else Color.WHITE
 		for state in ["font_color", "font_hover_color", "font_pressed_color"]:
 			button.add_theme_color_override(state, text_color)
+		button.add_theme_color_override("font_outline_color", UiStyle.OUTLINE)
+		button.add_theme_constant_override("outline_size", 6 if color != LOCKED_COLOR else 0)
 	_refresh_detail()
 	_refresh_stage()
 	queue_redraw()
@@ -249,10 +271,10 @@ func _on_buy_pressed() -> void:
 func _pop(text: String, at: Vector2) -> void:
 	var label := Label.new()
 	label.text = text
-	label.add_theme_font_size_override("font_size", 40)
+	label.add_theme_font_size_override("font_size", 46)
 	label.add_theme_color_override("font_color", POP_COLOR)
-	label.add_theme_color_override("font_outline_color", Color.BLACK)
-	label.add_theme_constant_override("outline_size", 10)
+	label.add_theme_color_override("font_outline_color", UiStyle.OUTLINE)
+	label.add_theme_constant_override("outline_size", 14)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(label)
 	var label_size := label.get_minimum_size()
