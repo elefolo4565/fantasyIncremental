@@ -38,7 +38,7 @@ scripts/autoload/     オートロード（Balance など）
 - **シーンは小さく、1つの役割だけ**を持たせる。シーン同士は `signal` でつなぎ、親が子を直接操作する方向にする（子から `get_parent()` で親をいじらない。生成した弾を同じ階層に足す程度は可）。
 - 壊せる物（モンスター・木など）は基底クラス `Breakable` を継承し、グループ `Breakable.GROUP`（`&"breakable"`）に入れる。
 - スクリプト先頭に `##` で「このシーンは何をするか」を1〜3行で書く。
-- 画面の文字は日本語でよい。フォントは `assets/fonts/MPLUSRounded1c-ExtraBold-subset.ttf`（OFL。`scenes/main/main.gd` で `ThemeDB.fallback_font` に設定している。`gui/theme/custom_font` は CI の初回インポートでエラーになるので使わない）。
+- 画面の文字は日本語でよい。フォントは `assets/fonts/MPLUSRounded1c-ExtraBold-subset.ttf`（OFL。`scenes/main/main.gd` で既定テーマの `default_font` と `ThemeDB.fallback_font` に設定している。PC では OS のフォントで補われて気づけないので、Web で文字化けしていないか確かめる。`gui/theme/custom_font` は CI の初回インポートでエラーになるので使わない）。
   ASCII・かな・記号・JIS第1水準の漢字だけに絞ってあるので、第2水準の漢字（例: 「呪」「贄」など）を使うと表示されない。使いたいときは元のフォントから作り直す。
 
 ## ゲームデザインのルール
