@@ -316,6 +316,7 @@ func _stage_targets() -> Array:
 		targets.append([Stats.SLIME, "スライム", stage.slime_hp])
 	if stage.oak_count > 0:
 		targets.append([Stats.OAK, "木", stage.oak_hp])
+	targets.append([Stats.SLIME, "ボス", stage.boss_hp])
 	return targets
 
 
@@ -327,7 +328,8 @@ func _refresh_stage() -> void:
 	var parts := PackedStringArray()
 	for target in _stage_targets():
 		parts.append("%s %d発" % [target[1], Stats.hits_to_break(target[0], target[2], Progress.levels)])
-	_stage_info.text = "　".join(parts) + "\n目標: %d秒で%d体倒す" % [roundi(Stats.run_time(Progress.levels)), stage.goal]
+	_stage_info.text = "　".join(parts) + "\n%d体倒すとボス。%d秒以内に倒せばクリア" \
+			% [stage.boss_after, roundi(Stats.run_time(Progress.levels))]
 
 
 func _on_node_pressed(def: UpgradeDef) -> void:

@@ -12,7 +12,11 @@ var slime_speed := 0.0
 var oak_count := 0
 var oak_hp := 1
 var oak_wood := 0
-var goal := 1
+## この数だけ倒すとボスが出る
+var boss_after := 1
+var boss_hp := 1
+var boss_gem := 0
+var boss_speed := 0.0
 
 
 static func from_row(row: Dictionary) -> StageDef:
@@ -27,5 +31,8 @@ static func from_row(row: Dictionary) -> StageDef:
 	def.oak_count = String(row.get("oak_count", "0")).to_int()
 	def.oak_hp = maxi(String(row.get("oak_hp", "1")).to_int(), 1)
 	def.oak_wood = String(row.get("oak_wood", "0")).to_int()
-	def.goal = maxi(String(row.get("goal", "1")).to_int(), 1)
+	def.boss_after = maxi(String(row.get("boss_after", "1")).to_int(), 0)
+	def.boss_hp = maxi(String(row.get("boss_hp", "1")).to_int(), 1)
+	def.boss_gem = String(row.get("boss_gem", "0")).to_int()
+	def.boss_speed = String(row.get("boss_speed", "0")).to_float()
 	return def

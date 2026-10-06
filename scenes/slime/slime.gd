@@ -17,6 +17,7 @@ const SPAWN_TRIES := 30
 ## 生成する側が add_child の前に入れる
 var target: Node2D
 var speed := 0.0
+var contact_damage := 1
 
 var _wander := Vector2.ZERO
 var _wander_left := 0.0
@@ -51,7 +52,7 @@ func _physics_process(delta: float) -> void:
 		_wander = -_wander
 	queue_redraw()
 	if target != null and global_position.distance_to(target.global_position) \
-			<= RADIUS + Balance.get_float("slime_touch_reach"):
+			<= radius() + Balance.get_float("slime_touch_reach"):
 		touched_player.emit(self)
 
 
@@ -65,6 +66,16 @@ func _choose_direction(delta: float) -> Vector2:
 		_wander_left = randf_range(1.0, 2.5)
 		_wander = Vector2.RIGHT.rotated(randf() * TAU) if randf() > 0.25 else Vector2.ZERO
 	return _wander
+
+
+## 体の絵は RADIUS の大きさで描く。radius() が大きい子クラス（ボス）はその分だけ拡大される。
+func _body_scale() -> float:
+	return radius() / RADIUS
+
+
+## 子クラスで上書きできる。体の色（追ってきているときは赤くなる）。
+func _body_color() -> Color:
+	return CHASE_BODY if _chasing else BODY_COLOR
 
 
 func _bar_color() -> Color:
@@ -99,7 +110,7 @@ func _draw_body(flash_amount: float) -> void:
 	var size := Vector2(RADIUS * squash, RADIUS * 0.82 / squash)
 	var center := Vector2(0, RADIUS - size.y - 2.0)
 	Toon.shadow(self, Vector2(0, RADIUS - 4.0), Vector2(RADIUS * 0.95, RADIUS * 0.32))
-	var body := (CHASE_BODY if _chasing else BODY_COLOR).lerp(FLASH_COLOR, flash_amount)
+	var body := _body_color().lerp(FLASH_COLOR, flash_amount)
 	Toon.shaded_blob(self, center, size, body)
 	var look := Vector2.ZERO
 	if target != null:

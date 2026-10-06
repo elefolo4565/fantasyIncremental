@@ -74,3 +74,8 @@ static func fire_interval(levels: Dictionary) -> float:
 ## 自動攻撃が狙える距離（ピクセル）。Far Sight で伸びる。
 static func fire_range(levels: Dictionary) -> float:
 	return Balance.get_float("fire_range") + effect(&"far_sight", levels)
+
+
+## 落ちた素材を吸い寄せ始める距離（ピクセル）。
+static func pickup_radius(levels: Dictionary) -> float:
+	return Balance.get_float("pickup_radius") + effect(&"magnet", levels)
