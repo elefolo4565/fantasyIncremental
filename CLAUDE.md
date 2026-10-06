@@ -19,7 +19,7 @@
 data/                 調整用の数値（CSV）。人が直接編集する
 scenes/<名前>/        1つのシーンと、そのスクリプトを同じフォルダに置く（例: scenes/slime/slime.tscn, slime.gd）
 scripts/autoload/     オートロード（Balance・Progress・Sfx・Bgm）
-assets/audio/         仮の BGM（自作。出どころは assets/audio/README.md）
+assets/audio/         BGM と効果音（魔王魂。クレジットと出どころは assets/audio/README.md。公開リポジトリなので再配布できる素材だけ置く）
 .github/workflows/    Web 版のビルドと GitHub Pages への公開
 ```
 

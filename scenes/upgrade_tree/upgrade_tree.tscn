@@ -39,6 +39,16 @@ offset_bottom = 56.0
 theme_override_font_sizes/font_size = 28
 text = "Gem 0    Wood 0"
 
+[node name="CreditLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 30.0
+offset_top = 56.0
+offset_right = 430.0
+offset_bottom = 80.0
+theme_override_colors/font_color = Color(1, 1, 1, 0.75)
+theme_override_font_sizes/font_size = 16
+text = "音楽・効果音：魔王魂"
+
 [node name="ResetButton" type="Button" parent="."]
 layout_mode = 1
 anchors_preset = 2

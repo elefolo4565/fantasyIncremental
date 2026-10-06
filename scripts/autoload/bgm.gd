@@ -1,14 +1,14 @@
 extends Node
 ## 仮の BGM。画面ごとの曲をループで流し、切り替えるときは前の曲を小さくしてから次の曲にする。
-## 曲は assets/audio/ の自作ループ（出どころは assets/audio/README.md）。オン/オフは Progress.bgm_on（保存する）。
+## 曲は魔王魂のループ曲（出どころとクレジットは assets/audio/README.md）。オン/オフは Progress.bgm_on（保存する）。
 ## Web ではブラウザの決まりで、最初に画面に触れるまで音は出ない。
 ## 使い方: Bgm.play(&"battle")
 
 ## オートロードは素材の取り込みより先に読まれるので、preload ではなく使うときに load する
 const TRACKS := {
-	&"tree": "res://assets/audio/bgm_tree.ogg",
-	&"battle": "res://assets/audio/bgm_battle.ogg",
-	&"boss": "res://assets/audio/bgm_boss.ogg",
+	&"tree": "res://assets/audio/bgm_tree_maoudamashii_8bit06.ogg",
+	&"battle": "res://assets/audio/bgm_battle_maoudamashii_8bit07.ogg",
+	&"boss": "res://assets/audio/bgm_boss_maoudamashii_8bit05.ogg",
 }
 const SILENT_DB := -40.0
 
