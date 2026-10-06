@@ -229,9 +229,9 @@ func _on_goal_reached() -> void:
 	_cleared = true
 	_unlocked = Progress.clear_stage(stage_index)
 	Sfx.play(&"clear")
-	_banner.text = "STAGE CLEAR!"
+	_banner.text = "ステージクリア！"
 	if _unlocked:
-		_banner.text += "\n%s unlocked" % Progress.stages[Progress.unlocked_stage].name
+		_banner.text += "\n%s が開いた" % Progress.stages[Progress.unlocked_stage].name
 	_banner.visible = true
 	_banner.modulate.a = 1.0
 	_banner.pivot_offset = _banner.size * 0.5
@@ -282,7 +282,7 @@ func _advance_ring() -> void:
 	_ring_progress = 0
 	_ring.level += 1
 	Sfx.play(&"ring")
-	_popup(_player.global_position + Vector2(0, -40), "SPIRIT RING Lv%d" % _ring.level, SpiritRing.ORB_COLOR, 30)
+	_popup(_player.global_position + Vector2(0, -40), "精霊の輪 Lv%d" % _ring.level, SpiritRing.ORB_COLOR, 30)
 	var burst := roundi(Stats.effect(&"ring_burst", Progress.levels))
 	if burst > 0:
 		for node in get_tree().get_nodes_in_group(Breakable.GROUP):
@@ -308,35 +308,35 @@ func _finish() -> void:
 	Progress.save()
 	Sfx.play(&"timeup")
 	if _defeated:
-		_result_title.text = "DEFEATED"
+		_result_title.text = "やられた…"
 	else:
-		_result_title.text = "STAGE CLEAR!" if _cleared else "TIME UP"
+		_result_title.text = "ステージクリア！" if _cleared else "時間切れ"
 	var lines := PackedStringArray()
-	lines.append("Broken: %d / %d" % [_broken_count, _stage.goal])
-	var gained := "+%d Gem" % _gained_gem
+	lines.append("倒した数: %d / %d" % [_broken_count, _stage.goal])
+	var gained := "宝石 +%d" % _gained_gem
 	if _gained_wood > 0 or _stage.oak_count > 0:
-		gained += "   +%d Wood" % _gained_wood
+		gained += "　木材 +%d" % _gained_wood
 	lines.append(gained)
 	if _unlocked:
-		lines.append("New stage: %s" % Progress.stages[Progress.unlocked_stage].name)
+		lines.append("新しいステージ: %s" % Progress.stages[Progress.unlocked_stage].name)
 	elif _cleared and _defeated:
-		lines.append("Stage cleared before you fell")
+		lines.append("やられる前にクリアできた")
 	elif not _cleared:
-		lines.append("Break %d to clear this stage" % _stage.goal)
+		lines.append("%d体倒せばクリア" % _stage.goal)
 	elif stage_index == Progress.stages.size() - 1:
-		lines.append("You cleared the last stage of this prototype!")
+		lines.append("試作の最後のステージをクリア！")
 	_result_body.text = "\n".join(lines)
 	_result_panel.visible = true
 	_update_hud()
 
 
 func _update_hud() -> void:
-	var goal := "CLEAR" if _cleared else "Goal %d/%d" % [_broken_count, _stage.goal]
-	_info_label.text = "%s    Time %d    HP %d/%d    %s" % [_stage.name, ceili(_time_left), _player.hp, _player.max_hp, goal]
-	_material_label.text = "Gem %d   Wood %d" % [Progress.gem, Progress.wood]
+	var goal := "クリア" if _cleared else "目標 %d/%d" % [_broken_count, _stage.goal]
+	_info_label.text = "%s　　残り%d秒　　HP %d/%d　　%s" % [_stage.name, ceili(_time_left), _player.hp, _player.max_hp, goal]
+	_material_label.text = "宝石 %d　木材 %d" % [Progress.gem, Progress.wood]
 	var max_level := Balance.get_int("ring_max_level")
 	var need := maxi(Balance.get_int("ring_breaks_per_level"), 1)
-	_ring_label.text = "Spirit Ring Lv%d" % _ring.level + (" MAX" if _ring.level >= max_level else "")
+	_ring_label.text = "精霊の輪 Lv%d" % _ring.level + ("（最大）" if _ring.level >= max_level else "")
 	_ring_bar.value = 1.0 if _ring.level >= max_level else float(_ring_progress) / need
 
 

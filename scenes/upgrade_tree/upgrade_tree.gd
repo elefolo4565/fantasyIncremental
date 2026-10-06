@@ -132,7 +132,7 @@ func _layout() -> void:
 
 
 func _refresh() -> void:
-	_material_label.text = "Gem %d    Wood %d" % [Progress.gem, Progress.wood]
+	_material_label.text = "宝石 %d　　木材 %d" % [Progress.gem, Progress.wood]
 	for def in Progress.upgrades:
 		var button: Button = _buttons[def.id]
 		button.text = "%s\n%d/%d" % [def.name, Progress.level(def.id), def.max_level]
@@ -163,17 +163,17 @@ func _refresh_detail() -> void:
 	_level_label.text = "Lv %d / %d" % [Progress.level(def.id), def.max_level]
 	_desc_label.text = def.description()
 	if Progress.is_maxed(def):
-		_cost_label.text = "MAX"
+		_cost_label.text = "最大まで覚えた"
 	elif not Progress.is_unlocked(def):
-		_cost_label.text = "Learn %s first" % Progress.upgrade(def.parent).name
+		_cost_label.text = "先に「%s」を覚える" % Progress.upgrade(def.parent).name
 	else:
 		var cost := Progress.next_cost(def)
 		var parts := PackedStringArray()
 		if cost.x > 0 or cost.y == 0:
-			parts.append("%d Gem" % cost.x)
+			parts.append("宝石 %d" % cost.x)
 		if cost.y > 0:
-			parts.append("%d Wood" % cost.y)
-		_cost_label.text = "Cost: " + "  ".join(parts)
+			parts.append("木材 %d" % cost.y)
+		_cost_label.text = "必要: " + "　".join(parts)
 	_preview_label.text = "\n".join(_hit_lines(def))
 	_buy_button.disabled = not Progress.can_buy(def)
 
@@ -189,23 +189,23 @@ func _hit_lines(def: UpgradeDef) -> PackedStringArray:
 		var before_hits := Stats.hits_to_break(target[0], target[2], now)
 		var after_hits := Stats.hits_to_break(target[0], target[2], after)
 		if before_hits != after_hits:
-			lines.append("%s: %d -> %d hits" % [target[1], before_hits, after_hits])
+			lines.append("%s: %d発 → %d発" % [target[1], before_hits, after_hits])
 	if not lines.is_empty():
-		lines.insert(0, "In %s:" % Progress.stages[Progress.selected_stage].name)
+		lines.insert(0, "%sでは:" % Progress.stages[Progress.selected_stage].name)
 	var stats_before := _stat_texts(now)
 	var stats_after := _stat_texts(after)
 	for label in stats_before:
 		if stats_before[label] != stats_after[label]:
-			lines.append("%s: %s -> %s" % [label, stats_before[label], stats_after[label]])
+			lines.append("%s: %s → %s" % [label, stats_before[label], stats_after[label]])
 	return lines
 
 
 ## 発数以外で強化によって変わる数値（活動時間・攻撃間隔・射程）を表示用の文字にする。
 func _stat_texts(levels: Dictionary) -> Dictionary:
 	return {
-		"Time": "%ds" % roundi(Stats.run_time(levels)),
-		"Cast": "%.2fs" % Stats.fire_interval(levels),
-		"Range": "%d" % roundi(Stats.fire_range(levels)),
+		"活動時間": "%d秒" % roundi(Stats.run_time(levels)),
+		"発射間隔": "%.2f秒" % Stats.fire_interval(levels),
+		"射程": "%d" % roundi(Stats.fire_range(levels)),
 	}
 
 
@@ -214,9 +214,9 @@ func _stage_targets() -> Array:
 	var stage := Progress.stages[Progress.selected_stage]
 	var targets := []
 	if stage.slime_count > 0:
-		targets.append([Stats.SLIME, "Slime", stage.slime_hp])
+		targets.append([Stats.SLIME, "スライム", stage.slime_hp])
 	if stage.oak_count > 0:
-		targets.append([Stats.OAK, "Tree", stage.oak_hp])
+		targets.append([Stats.OAK, "木", stage.oak_hp])
 	return targets
 
 
@@ -227,8 +227,8 @@ func _refresh_stage() -> void:
 	_next_button.disabled = Progress.selected_stage >= Progress.unlocked_stage
 	var parts := PackedStringArray()
 	for target in _stage_targets():
-		parts.append("%s %d hits" % [target[1], Stats.hits_to_break(target[0], target[2], Progress.levels)])
-	_stage_info.text = "   ".join(parts) + "\nGoal: break %d in %ds" % [stage.goal, roundi(Stats.run_time(Progress.levels))]
+		parts.append("%s %d発" % [target[1], Stats.hits_to_break(target[0], target[2], Progress.levels)])
+	_stage_info.text = "　".join(parts) + "\n目標: %d秒で%d体倒す" % [roundi(Stats.run_time(Progress.levels)), stage.goal]
 
 
 func _on_node_pressed(def: UpgradeDef) -> void:
@@ -249,16 +249,16 @@ func _on_buy_pressed() -> void:
 		Sfx.play(&"deny")
 		return
 	Sfx.play(&"buy")
-	var text := "LEARNED!"
+	var text := "覚えた！"
 	var stats_after := _stat_texts(Progress.levels)
 	for label: String in stats_before:
 		if stats_before[label] != stats_after[label]:
-			text = "%s %s -> %s!" % [label.to_upper(), stats_before[label], stats_after[label]]
+			text = "%s %s → %s！" % [label, stats_before[label], stats_after[label]]
 	var targets := _stage_targets()
 	for i in targets.size():
 		var after := Stats.hits_to_break(targets[i][0], targets[i][2], Progress.levels)
 		if after != before[i]:
-			text = "%s %d -> %d HITS!" % [targets[i][1], before[i], after]
+			text = "%s %d発 → %d発！" % [targets[i][1], before[i], after]
 			break
 	var button: Button = _buttons[def.id]
 	_pop(text, _node_center(def) + Vector2(0, -NODE_SIZE.y * 0.5))
@@ -303,8 +303,8 @@ func _on_start_pressed() -> void:
 func _on_reset_pressed() -> void:
 	if not _reset_armed:
 		_reset_armed = true
-		_reset_button.text = "Tap again to reset"
+		_reset_button.text = "もう一度押すと消去"
 		return
 	_reset_armed = false
-	_reset_button.text = "Reset save"
+	_reset_button.text = "最初からやり直す"
 	Progress.reset()
