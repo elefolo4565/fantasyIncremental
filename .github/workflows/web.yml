@@ -1,0 +1,92 @@
+name: Web build & deploy
+
+# PR では Web 版のビルドと動作チェックだけ、main へのマージで GitHub Pages に公開する。
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.5.1"
+  GODOT_STATUS: stable
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Godot
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates
+          key: godot-${{ env.GODOT_VERSION }}-${{ env.GODOT_STATUS }}-web
+
+      - name: Install Godot and Web export templates
+        run: |
+          set -euo pipefail
+          V="${GODOT_VERSION}-${GODOT_STATUS}"
+          BASE="https://github.com/godotengine/godot/releases/download/${V}"
+          TPL_DIR="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_STATUS}"
+          if [ ! -x "$HOME/godot/godot" ]; then
+            mkdir -p "$HOME/godot" /tmp/godot
+            curl -fsSL -o /tmp/godot.zip "${BASE}/Godot_v${V}_linux.x86_64.zip"
+            unzip -q /tmp/godot.zip -d /tmp/godot
+            mv "/tmp/godot/Godot_v${V}_linux.x86_64" "$HOME/godot/godot"
+          fi
+          if [ ! -f "$TPL_DIR/web_nothreads_release.zip" ]; then
+            mkdir -p "$TPL_DIR"
+            curl -fsSL -o /tmp/templates.tpz "${BASE}/Godot_v${V}_export_templates.tpz"
+            unzip -q -j -o /tmp/templates.tpz 'templates/web_nothreads_*' 'templates/version.txt' -d "$TPL_DIR"
+            rm /tmp/templates.tpz
+          fi
+          echo "$HOME/godot" >> "$GITHUB_PATH"
+
+      - name: Import project
+        run: godot --headless --import 2>&1 | tee import.log
+
+      - name: Smoke test (run the main scene headless)
+        run: |
+          godot --headless --quit-after 600 2>&1 | tee run.log
+          if grep -E "SCRIPT ERROR|Parse Error|^ERROR" import.log run.log; then
+            echo "::error::Godot がエラーを出しました（上のログを参照）"
+            exit 1
+          fi
+
+      - name: Export Web (single-threaded)
+        run: |
+          mkdir -p build/web
+          godot --headless --export-release "Web" build/web/index.html 2>&1 | tee export.log
+          test -f build/web/index.html
+          test -f build/web/index.pck
+          if grep -E "SCRIPT ERROR|Parse Error|^ERROR" export.log; then
+            echo "::error::書き出し中にエラーが出ました"
+            exit 1
+          fi
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
