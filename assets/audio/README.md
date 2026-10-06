@@ -12,7 +12,7 @@ BGM と効果音は **魔王魂**（森田交一）の素材を使っていま�
 | bgm_battle_maoudamashii_8bit07.ogg | ファミコン風 8bit07（ループ版） | 戦闘 |
 | bgm_boss_maoudamashii_8bit05.ogg | ファミコン風 8bit05（ループ版） | ボス |
 | se/se_boss_break_maoudamashii_battle_explosion05.ogg | maou_se_battle_explosion05 | boss_break |
-| se/se_break_maoudamashii_battle_explosion06.ogg | maou_se_battle_explosion06 | break |
+| se/se_break_maoudamashii_8bit16.ogg | maou_se_8bit16 | break（2026-10-06 爆発音から軽い音に変更） |
 | se/se_buy_maoudamashii_system03.ogg | maou_se_system03 | buy |
 | se/se_clear_maoudamashii_jingle04.ogg | maou_se_jingle04 | clear |
 | se/se_click_maoudamashii_system24.ogg | maou_se_system24 | click |
