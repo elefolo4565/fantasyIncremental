@@ -335,6 +335,7 @@ func _spawn_boss() -> void:
 	_boss.touched_player.connect(_on_slime_touched)
 	_world.add_child(_boss)
 	Sfx.play(&"ring")
+	Bgm.play(&"boss")
 	_show_banner("ボス出現！")
 
 

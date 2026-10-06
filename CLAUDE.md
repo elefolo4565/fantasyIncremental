@@ -18,7 +18,8 @@
 ```
 data/                 調整用の数値（CSV）。人が直接編集する
 scenes/<名前>/        1つのシーンと、そのスクリプトを同じフォルダに置く（例: scenes/slime/slime.tscn, slime.gd）
-scripts/autoload/     オートロード（Balance など）
+scripts/autoload/     オートロード（Balance・Progress・Sfx・Bgm）
+assets/audio/         仮の BGM（自作。出どころは assets/audio/README.md）
 .github/workflows/    Web 版のビルドと GitHub Pages への公開
 ```
 
@@ -33,6 +34,8 @@ scripts/autoload/     オートロード（Balance など）
   `export_presets.cfg` の `include_filter="data/*.csv"` で書き出しに含まれる。
 
 ## コードの書き方
+
+- オートロードは素材の取り込みより先に読まれるので、オートロードの中で素材を `preload` しない（使うときに `load` する）。
 
 - Godot 4 の公式スタイルガイドに従う。インデントはタブ、ファイル名とフォルダ名は `snake_case`、`class_name` は `PascalCase`。
 - 変数・引数・戻り値には型を付ける（`var speed := 0.0`、`func take_hit(damage: int) -> void:`）。

@@ -24,6 +24,7 @@ func _ready() -> void:
 func _show_tree() -> void:
 	var tree := TREE_SCENE.instantiate() as UpgradeTree
 	tree.start_requested.connect(_show_run)
+	Bgm.play(&"tree")
 	_switch_to(tree)
 
 
@@ -31,6 +32,7 @@ func _show_run(stage_index: int) -> void:
 	var run := RUN_SCENE.instantiate() as Run
 	run.stage_index = stage_index
 	run.finished.connect(_show_tree)
+	Bgm.play(&"battle")
 	_switch_to(run)
 
 

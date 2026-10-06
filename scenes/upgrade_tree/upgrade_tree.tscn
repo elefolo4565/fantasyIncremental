@@ -67,6 +67,20 @@ focus_mode = 0
 theme_override_font_sizes/font_size = 18
 text = "移動: スティック"
 
+[node name="BgmButton" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 500.0
+offset_top = -52.0
+offset_right = 660.0
+offset_bottom = -14.0
+grow_vertical = 0
+focus_mode = 0
+theme_override_font_sizes/font_size = 18
+text = "BGM: オン"
+
 [node name="Side" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 11

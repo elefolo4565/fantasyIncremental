@@ -20,6 +20,8 @@ var selected_stage := 0
 var unit_scale := 1.0
 ## 設定: true ならタップした場所へ移動する（false なら仮想スティック）
 var tap_move := false
+## 設定: BGM を鳴らすか
+var bgm_on := true
 
 var upgrades: Array[UpgradeDef] = []
 var stages: Array[StageDef] = []
@@ -99,6 +101,11 @@ func set_tap_move(on: bool) -> void:
 	_changed()
 
 
+func set_bgm_on(on: bool) -> void:
+	bgm_on = on
+	_changed()
+
+
 func reset() -> void:
 	gem = 0
 	wood = 0
@@ -126,6 +133,7 @@ func save() -> void:
 	config.set_value("stages", "unlocked", unlocked_stage)
 	config.set_value("stages", "selected", selected_stage)
 	config.set_value("options", "tap_move", tap_move)
+	config.set_value("options", "bgm_on", bgm_on)
 	for id in levels:
 		config.set_value("levels", String(id), levels[id])
 	var error := config.save(SAVE_PATH)
@@ -147,6 +155,7 @@ func _load_save() -> void:
 	unlocked_stage = clampi(config.get_value("stages", "unlocked", 0), 0, stages.size() - 1)
 	selected_stage = clampi(config.get_value("stages", "selected", 0), 0, unlocked_stage)
 	tap_move = bool(config.get_value("options", "tap_move", false))
+	bgm_on = bool(config.get_value("options", "bgm_on", true))
 	if config.has_section("levels"):
 		for key in config.get_section_keys("levels"):
 			var def := upgrade(StringName(key))
