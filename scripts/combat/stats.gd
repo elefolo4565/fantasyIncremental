@@ -64,3 +64,13 @@ static func hits_to_break(kind: StringName, base_hp: int, levels: Dictionary) ->
 ## ラン1回の活動時間（秒）。Hourglass で伸びる。
 static func run_time(levels: Dictionary) -> float:
 	return Balance.get_float("run_time") + effect(&"hourglass", levels)
+
+
+## 魔法弾を撃つ間隔（秒）。Quick Cast の段ごとに「1秒あたりの発数」が value 倍ずつ増える。
+static func fire_interval(levels: Dictionary) -> float:
+	return Balance.get_float("fire_interval") / (1.0 + effect(&"quick_cast", levels))
+
+
+## 自動攻撃が狙える距離（ピクセル）。Far Sight で伸びる。
+static func fire_range(levels: Dictionary) -> float:
+	return Balance.get_float("fire_range") + effect(&"far_sight", levels)

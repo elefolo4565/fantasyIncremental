@@ -31,7 +31,7 @@ func _physics_process(delta: float) -> void:
 	var step := Balance.get_float("bolt_speed") * delta
 	position += direction * step
 	_travelled += step
-	if _travelled > Balance.get_float("fire_range") * 1.5:
+	if _travelled > Stats.fire_range(Progress.levels) * 1.5:
 		queue_free()
 
 
@@ -62,7 +62,7 @@ func _on_body_entered(body: Node2D) -> void:
 
 func _find_bounce_target() -> Breakable:
 	var best: Breakable = null
-	var best_distance := Balance.get_float("fire_range")
+	var best_distance := Stats.fire_range(Progress.levels)
 	for node in get_tree().get_nodes_in_group(Breakable.GROUP):
 		var candidate := node as Breakable
 		if candidate == null or _hit.has(candidate):

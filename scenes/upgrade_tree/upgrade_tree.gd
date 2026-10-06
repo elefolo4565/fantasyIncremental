@@ -170,11 +170,21 @@ func _hit_lines(def: UpgradeDef) -> PackedStringArray:
 			lines.append("%s: %d -> %d hits" % [target[1], before_hits, after_hits])
 	if not lines.is_empty():
 		lines.insert(0, "In %s:" % Progress.stages[Progress.selected_stage].name)
-	var time_before := roundi(Stats.run_time(now))
-	var time_after := roundi(Stats.run_time(after))
-	if time_before != time_after:
-		lines.append("Time: %ds -> %ds" % [time_before, time_after])
+	var stats_before := _stat_texts(now)
+	var stats_after := _stat_texts(after)
+	for label in stats_before:
+		if stats_before[label] != stats_after[label]:
+			lines.append("%s: %s -> %s" % [label, stats_before[label], stats_after[label]])
 	return lines
+
+
+## 発数以外で強化によって変わる数値（活動時間・攻撃間隔・射程）を表示用の文字にする。
+func _stat_texts(levels: Dictionary) -> Dictionary:
+	return {
+		"Time": "%ds" % roundi(Stats.run_time(levels)),
+		"Cast": "%.2fs" % Stats.fire_interval(levels),
+		"Range": "%d" % roundi(Stats.fire_range(levels)),
+	}
 
 
 ## 選んだステージに出る物の [種類, 表示名, 耐久] の一覧。
@@ -212,15 +222,16 @@ func _on_buy_pressed() -> void:
 	var before: Array[int] = []
 	for target in _stage_targets():
 		before.append(Stats.hits_to_break(target[0], target[2], Progress.levels))
-	var time_before := roundi(Stats.run_time(Progress.levels))
+	var stats_before := _stat_texts(Progress.levels)
 	if not Progress.buy(def):
 		Sfx.play(&"deny")
 		return
 	Sfx.play(&"buy")
 	var text := "LEARNED!"
-	var time_after := roundi(Stats.run_time(Progress.levels))
-	if time_after != time_before:
-		text = "TIME %ds -> %ds!" % [time_before, time_after]
+	var stats_after := _stat_texts(Progress.levels)
+	for label: String in stats_before:
+		if stats_before[label] != stats_after[label]:
+			text = "%s %s -> %s!" % [label.to_upper(), stats_before[label], stats_after[label]]
 	var targets := _stage_targets()
 	for i in targets.size():
 		var after := Stats.hits_to_break(targets[i][0], targets[i][2], Progress.levels)

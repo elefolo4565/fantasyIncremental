@@ -1,7 +1,7 @@
 id,name,world,slime_count,slime_hp,slime_gem,slime_speed,oak_count,oak_hp,oak_wood,goal,memo
-plains_1,Plains 1,plains,6,7,1,55,0,0,0,4,平原1。スライム6匹・耐久7（強化なしで7発）・1匹で宝石1・移動速度55px/秒・4匹倒せばクリア
-plains_2,Plains 2,plains,7,10,2,65,0,0,0,12,平原2
-plains_3,Plains 3,plains,8,14,3,75,0,0,0,24,平原3（ここをクリアすると森へ）
-forest_1,Forest 1,forest,5,14,3,75,4,16,1,32,森1。木（oak）は動かないが叩かずにいると耐久が戻る
-forest_2,Forest 2,forest,5,18,4,85,5,22,2,42,森2
-forest_3,Forest 3,forest,6,22,5,95,6,28,2,55,森3（試作の最終ステージ）
+plains_1,Plains 1,plains,6,6,2,55,0,0,0,3,平原1。スライム6匹・耐久6（強化なしで6発）・1匹で宝石2・移動速度55px/秒・3匹倒せばクリア
+plains_2,Plains 2,plains,7,10,2,65,0,0,0,9,平原2
+plains_3,Plains 3,plains,8,14,3,75,0,0,0,14,平原3（ここをクリアすると森へ）
+forest_1,Forest 1,forest,5,14,3,75,4,16,1,22,森1。木（oak）は動かないが叩かずにいると耐久が戻る
+forest_2,Forest 2,forest,5,18,4,85,5,22,2,30,森2
+forest_3,Forest 3,forest,6,22,5,95,6,28,2,40,森3（試作の最終ステージ）

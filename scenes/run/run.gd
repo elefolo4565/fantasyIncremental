@@ -216,7 +216,7 @@ func _shatter(at: Vector2, damage: int) -> void:
 
 func _fire_echo(at: Vector2) -> void:
 	var best: Breakable = null
-	var best_distance := Balance.get_float("fire_range")
+	var best_distance := Stats.fire_range(Progress.levels)
 	for node in get_tree().get_nodes_in_group(Breakable.GROUP):
 		var candidate := node as Breakable
 		if candidate == null:

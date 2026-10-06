@@ -8,8 +8,8 @@ slime_contact_damage,1,スライムに触れたときに減る体力
 slime_aggro_range,220,スライムがプレイヤーに気づいて寄ってくる距離（ピクセル）。湧くときもこれより離れた場所を選ぶ
 slime_chase_multiplier,1.3,プレイヤーに寄ってくるときの速さの倍率（stages.csv の slime_speed に掛ける）
 slime_touch_reach,22,スライムの縁からこの距離にプレイヤーの中心が入ったら当たり（ピクセル）
-fire_interval,0.45,魔法弾を自動で撃つ間隔（秒）
-fire_range,420,自動攻撃が狙える距離（ピクセル）
+fire_interval,1.2,強化なしで魔法弾を自動で撃つ間隔（秒）。魔導樹の Quick Cast で短くなる
+fire_range,170,強化なしで自動攻撃が狙える距離（ピクセル）。魔導樹の Far Sight で伸びる
 bolt_speed,720,魔法弾の飛ぶ速さ（ピクセル/秒）
 bolt_damage,1,強化なしの魔法弾1発で減らす耐久
 twin_spread,14,狙う相手が足りないとき、追加の魔法弾をずらす角度（度）

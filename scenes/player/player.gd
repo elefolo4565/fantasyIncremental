@@ -61,7 +61,7 @@ func _physics_process(delta: float) -> void:
 		var targets := _find_targets(bolt_count)
 		if not targets.is_empty():
 			_fire_volley(targets, bolt_count)
-			_fire_cooldown = Balance.get_float("fire_interval")
+			_fire_cooldown = Stats.fire_interval(Progress.levels)
 
 
 func _draw() -> void:
@@ -86,7 +86,7 @@ func _read_move_input() -> Vector2:
 ## 射程内の壊せる物を近い順に最大 count 個返す。
 func _find_targets(count: int) -> Array[Breakable]:
 	var in_range: Array[Breakable] = []
-	var fire_range := Balance.get_float("fire_range")
+	var fire_range := Stats.fire_range(Progress.levels)
 	for node in get_tree().get_nodes_in_group(Breakable.GROUP):
 		var candidate := node as Breakable
 		if candidate != null and global_position.distance_to(candidate.global_position) < fire_range:
