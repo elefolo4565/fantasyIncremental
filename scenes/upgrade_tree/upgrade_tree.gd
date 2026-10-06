@@ -2,6 +2,7 @@ class_name UpgradeTree
 extends Control
 ## 魔導樹の画面。強化ノードを並べ、選んだノードの説明・費用と「何発で壊れるか」の変化を見せて買えるようにする。
 ## ステージを選んで START を押すと start_requested を出す。
+## 魔導樹はピンチ（PC ではホイール）で拡大し、ドラッグで動かせる。
 
 signal start_requested(stage_index: int)
 
@@ -23,14 +24,24 @@ const LOCKED_COLOR := Color(0.24, 0.27, 0.42)
 const LOCKED_TEXT := Color(0.62, 0.65, 0.78)
 const POP_COLOR := Color(1.0, 0.85, 0.3)
 const POP_TIME := 1.1
+const ZOOM_MIN := 1.0
+const ZOOM_MAX := 2.6
+const WHEEL_ZOOM_STEP := 1.15
+## これ以上指が動いたらドラッグとみなし、ノードを押したことにしない（画面上の点）
+const DRAG_THRESHOLD := 14.0
 
 var _buttons: Dictionary = {}
 var _tree_origin := Vector2.ZERO
 var _styles: Dictionary = {}
 var _selected: UpgradeDef
 var _reset_armed := false
+var _zoom := 1.0
+var _pan := Vector2.ZERO
+var _touches: Dictionary = {}
+var _drag_distance := 0.0
 
-@onready var _nodes: Control = $Nodes
+@onready var _clip: Control = $TreeClip
+@onready var _nodes: Control = $TreeClip/Nodes
 @onready var _material_label: Label = $MaterialLabel
 @onready var _name_label: Label = $Side/Detail/Box/Name
 @onready var _level_label: Label = $Side/Detail/Box/Level
@@ -56,6 +67,7 @@ func _ready() -> void:
 		button.focus_mode = Control.FOCUS_NONE
 		button.add_theme_font_size_override("font_size", 17)
 		button.pressed.connect(_on_node_pressed.bind(def))
+		button.position = _cell_center(def) - NODE_SIZE * 0.5
 		_nodes.add_child(button)
 		_buttons[def.id] = button
 	_apply_styles()
@@ -66,6 +78,7 @@ func _ready() -> void:
 	_reset_button.pressed.connect(_on_reset_pressed)
 	Progress.changed.connect(_refresh)
 	resized.connect(_layout)
+	_nodes.draw.connect(_draw_links)
 
 	_selected = Progress.upgrades[0] if not Progress.upgrades.is_empty() else null
 	for def in Progress.upgrades:
@@ -97,21 +110,31 @@ func _draw() -> void:
 		var x := i * STRIPE_WIDTH * 2.0
 		draw_colored_polygon(PackedVector2Array([Vector2(x, 0), Vector2(x + STRIPE_WIDTH, 0),
 				Vector2(x + STRIPE_WIDTH - size.y, size.y), Vector2(x - size.y, size.y)]), STRIPE_COLOR)
+
+
+## ノード同士の線と選択枠。$TreeClip/Nodes の中に描くので、拡大・移動に一緒についてくる。
+func _draw_links() -> void:
 	for def in Progress.upgrades:
 		if def.parent == &"" or Progress.upgrade(def.parent) == null:
 			continue
 		var color := LINE_ON if Progress.is_unlocked(def) else LINE_OFF
-		var from := _node_center(Progress.upgrade(def.parent))
-		draw_line(from, _node_center(def), UiStyle.OUTLINE, 14.0)
-		draw_line(from, _node_center(def), color, 7.0)
+		var from := _cell_center(Progress.upgrade(def.parent))
+		_nodes.draw_line(from, _cell_center(def), UiStyle.OUTLINE, 14.0)
+		_nodes.draw_line(from, _cell_center(def), color, 7.0)
 	if _selected != null:
-		var rect := Rect2(_node_center(_selected) - NODE_SIZE * 0.5, NODE_SIZE).grow(6.0)
-		draw_rect(rect.grow(3.0), UiStyle.OUTLINE, false, 4.0)
-		draw_rect(rect, SELECT_COLOR, false, 4.0)
+		var rect := Rect2(_cell_center(_selected) - NODE_SIZE * 0.5, NODE_SIZE).grow(6.0)
+		_nodes.draw_rect(rect.grow(3.0), UiStyle.OUTLINE, false, 4.0)
+		_nodes.draw_rect(rect, SELECT_COLOR, false, 4.0)
 
 
+## 魔導樹の中での位置（拡大前）。
+func _cell_center(def: UpgradeDef) -> Vector2:
+	return Vector2(def.cell) * CELL_SIZE + CELL_SIZE * 0.5
+
+
+## 画面上の位置（拡大・移動後）。
 func _node_center(def: UpgradeDef) -> Vector2:
-	return _tree_origin + Vector2(def.cell) * CELL_SIZE + CELL_SIZE * 0.5
+	return _clip.position + _nodes.position + _cell_center(def) * _zoom
 
 
 func _make_style(color: Color) -> StyleBoxFlat:
@@ -120,15 +143,91 @@ func _make_style(color: Color) -> StyleBoxFlat:
 
 ## 魔導樹を、右の説明欄を除いた場所の真ん中に置く。
 func _layout() -> void:
+	var area := _tree_area()
+	_tree_origin = (area.position + (area.size - _tree_size()) * 0.5).max(Vector2(8.0, HEADER_HEIGHT))
+	_apply_view()
+	queue_redraw()
+
+
+func _tree_size() -> Vector2:
 	var cells := Vector2i.ONE
 	for def in Progress.upgrades:
 		cells = cells.max(def.cell + Vector2i.ONE)
-	var area := Rect2(0.0, HEADER_HEIGHT, size.x - SIDE_WIDTH, size.y - HEADER_HEIGHT - FOOTER_HEIGHT)
-	_tree_origin = (area.position + (area.size - Vector2(cells) * CELL_SIZE) * 0.5).max(Vector2(8.0, HEADER_HEIGHT))
-	for def in Progress.upgrades:
-		var button: Button = _buttons[def.id]
-		button.position = _node_center(def) - NODE_SIZE * 0.5
-	queue_redraw()
+	return Vector2(cells) * CELL_SIZE
+
+
+## 魔導樹を置く場所（右の説明欄と上下の帯を除いたところ）。
+func _tree_area() -> Rect2:
+	return Rect2(0.0, HEADER_HEIGHT, size.x - SIDE_WIDTH, size.y - HEADER_HEIGHT - FOOTER_HEIGHT)
+
+
+## 拡大率と移動量を $TreeClip/Nodes に反映する。木の真ん中が置き場所から出ないように抑える。
+## 置き場所の外にはみ出した部分は $TreeClip で切る。
+func _apply_view() -> void:
+	var area := _tree_area()
+	_clip.position = area.position
+	_clip.size = area.size
+	var half := _tree_size() * 0.5
+	var center := _tree_origin + half + _pan
+	var limit := (half * _zoom - area.size * 0.5).max(Vector2.ZERO)
+	var area_center := area.get_center()
+	center = center.clamp(area_center - limit, area_center + limit) if _zoom > ZOOM_MIN else _tree_origin + half
+	_pan = center - _tree_origin - half
+	_nodes.scale = Vector2.ONE * _zoom
+	_nodes.position = center - half * _zoom - area.position
+
+
+## 画面上の点 focus を動かさずに拡大率を変える。
+func _zoom_at(focus: Vector2, zoom: float) -> void:
+	var new_zoom := clampf(zoom, ZOOM_MIN, ZOOM_MAX)
+	var local := (focus - _clip.position - _nodes.position) / _zoom
+	var new_position := focus - local * new_zoom
+	_zoom = new_zoom
+	_pan = new_position + _tree_size() * 0.5 * _zoom - _tree_origin - _tree_size() * 0.5
+	_apply_view()
+
+
+func _input(event: InputEvent) -> void:
+	if not is_visible_in_tree():
+		return
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		var at := touch.position - global_position
+		if touch.pressed:
+			if not _tree_area().has_point(at):
+				return
+			if _touches.is_empty():
+				_drag_distance = 0.0
+			_touches[touch.index] = at
+		else:
+			_touches.erase(touch.index)
+	elif event is InputEventScreenDrag:
+		var drag := event as InputEventScreenDrag
+		if not _touches.has(drag.index):
+			return
+		var at := drag.position - global_position
+		if _touches.size() >= 2:
+			var other: Vector2 = _touches[_touches.keys().filter(func(i: int) -> bool: return i != drag.index)[0]]
+			var before := other.distance_to(_touches[drag.index])
+			var after := other.distance_to(at)
+			if before > 1.0:
+				_zoom_at((other + at) * 0.5, _zoom * after / before)
+			_drag_distance = DRAG_THRESHOLD + 1.0
+		else:
+			_drag_distance += drag.relative.length()
+			if _drag_distance > DRAG_THRESHOLD:
+				_pan += drag.relative
+				_apply_view()
+		_touches[drag.index] = at
+	elif event is InputEventMouseButton:
+		var wheel := event as InputEventMouseButton
+		var at := wheel.position - global_position
+		if not wheel.pressed or not _tree_area().has_point(at):
+			return
+		if wheel.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_zoom_at(at, _zoom * WHEEL_ZOOM_STEP)
+		elif wheel.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_zoom_at(at, _zoom / WHEEL_ZOOM_STEP)
 
 
 func _refresh() -> void:
@@ -152,7 +251,7 @@ func _refresh() -> void:
 		button.add_theme_constant_override("outline_size", 6 if color != LOCKED_COLOR else 0)
 	_refresh_detail()
 	_refresh_stage()
-	queue_redraw()
+	_nodes.queue_redraw()
 
 
 func _refresh_detail() -> void:
@@ -232,6 +331,8 @@ func _refresh_stage() -> void:
 
 
 func _on_node_pressed(def: UpgradeDef) -> void:
+	if _drag_distance > DRAG_THRESHOLD:
+		return
 	Sfx.play(&"click")
 	_selected = def
 	_refresh()
