@@ -3,6 +3,7 @@ extends CharacterBody2D
 ## プレイヤー。スティックかキーボードで動き、近くの壊せる物へ魔法弾を自動で撃つ。
 ## 魔導樹の Twin Bolt で1度に撃つ数が増え、Focus で数発ごとに強い1発になる。
 ## モンスターに触れると体力が減り、少しのあいだ無敵になって弾き飛ばされる。体力が 0 になると died を出す。
+## tuning が true のあいだ（大きさの調整中）は無敵で、攻撃もしない。
 
 signal hurt
 signal died
@@ -20,6 +21,7 @@ const DRAW_SCALE := 1.35
 const BLINK_RATE := 18.0
 
 var stick: VirtualStick
+var tuning := false
 var max_hp := 1
 var hp := 1
 
@@ -29,11 +31,21 @@ var _knockback := Vector2.ZERO
 var _facing := Vector2.RIGHT
 var _walk := 0.0
 var _shot_count := 0
+var _body_scale := 1.0
+
+@onready var _shape: CollisionShape2D = $CollisionShape2D
 
 
 func _ready() -> void:
 	max_hp = maxi(Balance.get_int("player_hp"), 1)
 	hp = max_hp
+
+
+## 見た目と当たり判定の大きさを変える（子の精霊の輪は変えない）。
+func set_body_scale(value: float) -> void:
+	_body_scale = value
+	_shape.scale = Vector2.ONE * value
+	queue_redraw()
 
 
 func is_alive() -> bool:
@@ -42,7 +54,7 @@ func is_alive() -> bool:
 
 ## from から押し返されるように弾き飛ぶ。無敵のあいだは何もしない。
 func take_damage(amount: int, from: Vector2) -> void:
-	if hp <= 0 or _invincible > 0.0:
+	if hp <= 0 or _invincible > 0.0 or tuning:
 		return
 	hp = maxi(hp - amount, 0)
 	_invincible = Balance.get_float("player_invincible_time")
@@ -66,8 +78,11 @@ func _physics_process(delta: float) -> void:
 	velocity = move * Balance.get_float("player_speed") + _knockback
 	move_and_slide()
 	var area := get_viewport_rect().size
-	global_position = global_position.clamp(Vector2(RADIUS, RADIUS), area - Vector2(RADIUS, RADIUS))
+	var margin := Vector2.ONE * RADIUS * _body_scale
+	global_position = global_position.clamp(margin, area - margin)
 
+	if tuning:
+		return
 	_fire_cooldown -= delta
 	if _fire_cooldown <= 0.0:
 		var bolt_count := 1 + roundi(Stats.effect(&"twin", Progress.levels))
@@ -82,7 +97,7 @@ func _draw() -> void:
 	var tint := Color.WHITE if not blink else HURT_COLOR
 	var bob := sin(_walk) * 2.5
 	var side := -1.0 if _facing.x < 0.0 else 1.0
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE * DRAW_SCALE)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE * DRAW_SCALE * _body_scale)
 	Toon.shadow(self, Vector2(0, 22), Vector2(22, 8))
 	# 杖（体の後ろ側）
 	var staff_top := Vector2(side * 24, -30 + bob)

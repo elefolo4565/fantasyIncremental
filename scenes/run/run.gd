@@ -5,6 +5,7 @@ extends Node2D
 ## 砕裂（Shatter）・残響（Echo）・精霊の輪のレベルアップもここで扱う。
 ## モンスター（Slime）は稼ぎの元であり脅威でもある。触れると体力が減り、体力が 0 になるとそこでランが終わる。
 ## クリア・時間切れ・やられたら結果を表示し、戻るボタンで finished を出す。
+## 右上の「大きさ」から、敵とプレイヤーの大きさの倍率をつまみで試せる（開いているあいだは時間が止まり、無敵で攻撃しない）。
 
 signal finished
 
@@ -46,6 +47,11 @@ const DAMAGE_SIZE := 24
 ## 与えたダメージの数字を出しておく時間（見た目だけ、秒）
 const DAMAGE_LIFETIME := 0.45
 const DAMAGE_JITTER := 14.0
+## 大きさのつまみの範囲と刻み（調整用の道具なので見た目の定数として置く）
+const SCALE_MIN := 0.4
+const SCALE_MAX := 1.5
+const SCALE_STEP := 0.05
+const GRABBER_RADIUS := 22
 
 ## 生成する側が add_child の前に入れる
 var stage_index := 0
@@ -67,6 +73,10 @@ var _player: Player
 var _ring: SpiritRing
 var _decor: Array[Vector2] = []
 var _shake := 0.0
+var _tuning := false
+var _size_button: Button
+var _size_panel: PanelContainer
+var _size_label: Label
 
 @onready var _world: Node2D = $World
 @onready var _stick: VirtualStick = $HUD/VirtualStick
@@ -99,6 +109,7 @@ func _ready() -> void:
 	_player.hurt.connect(_on_player_hurt)
 	_player.died.connect(_on_player_died)
 	_world.add_child(_player)
+	_player.set_body_scale(Progress.unit_scale)
 	_ring = RING_SCENE.instantiate() as SpiritRing
 	_player.add_child(_ring)
 	_ring.level = mini(roundi(Stats.effect(&"ring_start", Progress.levels)), Balance.get_int("ring_max_level"))
@@ -108,7 +119,112 @@ func _ready() -> void:
 		_spawn(SLIME_SCENE, _stage.slime_hp, _stage.slime_gem, area, taken)
 	for _i in _stage.oak_count:
 		_spawn(OAK_SCENE, _stage.oak_hp, _stage.oak_wood, area, taken)
+	_build_size_tuner()
 	_update_hud()
+
+
+## 大きさを試すためのボタンとつまみを作る。
+func _build_size_tuner() -> void:
+	var hud := $HUD as CanvasLayer
+	_size_button = Button.new()
+	_size_button.text = "大きさ"
+	_size_button.focus_mode = Control.FOCUS_NONE
+	_size_button.add_theme_font_size_override("font_size", 24)
+	_size_button.position = Vector2(get_viewport_rect().size.x - 164.0, 66.0)
+	_size_button.size = Vector2(140, 48)
+	UiStyle.button(_size_button, UiStyle.BLUE)
+	_size_button.pressed.connect(_set_tuning.bind(true))
+	hud.add_child(_size_button)
+
+	_size_panel = PanelContainer.new()
+	_size_panel.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.PANEL, 16, 4, 6))
+	_size_panel.position = Vector2(get_viewport_rect().size.x - 504.0, 124.0)
+	_size_panel.custom_minimum_size = Vector2(480, 0)
+	_size_panel.visible = false
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 12)
+	_size_panel.add_child(box)
+	_size_label = Label.new()
+	_size_label.add_theme_font_size_override("font_size", 28)
+	_size_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiStyle.outline_label(_size_label)
+	box.add_child(_size_label)
+	var slider := HSlider.new()
+	slider.min_value = SCALE_MIN
+	slider.max_value = SCALE_MAX
+	slider.step = SCALE_STEP
+	slider.value = Progress.unit_scale
+	slider.custom_minimum_size = Vector2(0, 56)
+	slider.focus_mode = Control.FOCUS_NONE
+	slider.value_changed.connect(_on_scale_changed)
+	_style_slider(slider)
+	box.add_child(slider)
+	var note := Label.new()
+	note.text = "調整中は時間が止まり、無敵で攻撃しません"
+	note.add_theme_font_size_override("font_size", 18)
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(note)
+	var close := Button.new()
+	close.text = "閉じる"
+	close.focus_mode = Control.FOCUS_NONE
+	close.add_theme_font_size_override("font_size", 24)
+	close.custom_minimum_size = Vector2(0, 52)
+	UiStyle.button(close, UiStyle.YELLOW)
+	close.pressed.connect(_set_tuning.bind(false))
+	box.add_child(close)
+	hud.add_child(_size_panel)
+	_refresh_size_label()
+
+
+## スマホの指でもつかみやすいように、太い溝と大きなつまみにする。
+func _style_slider(slider: HSlider) -> void:
+	var track := UiStyle.box(Color(0.12, 0.12, 0.22), 10, 3, 0)
+	track.content_margin_top = 8.0
+	track.content_margin_bottom = 8.0
+	var filled := UiStyle.box(UiStyle.BLUE, 10, 3, 0)
+	filled.content_margin_top = 8.0
+	filled.content_margin_bottom = 8.0
+	slider.add_theme_stylebox_override("slider", track)
+	slider.add_theme_stylebox_override("grabber_area", filled)
+	slider.add_theme_stylebox_override("grabber_area_highlight", filled)
+	var knob := _circle_texture(GRABBER_RADIUS, UiStyle.YELLOW)
+	for icon in ["grabber", "grabber_highlight"]:
+		slider.add_theme_icon_override(icon, knob)
+
+
+func _circle_texture(radius: int, color: Color) -> ImageTexture:
+	var image := Image.create_empty(radius * 2, radius * 2, false, Image.FORMAT_RGBA8)
+	var center := Vector2(radius, radius)
+	for y in radius * 2:
+		for x in radius * 2:
+			var distance := Vector2(x + 0.5, y + 0.5).distance_to(center)
+			if distance <= radius - 4.0:
+				image.set_pixel(x, y, color)
+			elif distance <= radius:
+				image.set_pixel(x, y, Toon.OUTLINE)
+	return ImageTexture.create_from_image(image)
+
+
+func _set_tuning(on: bool) -> void:
+	Sfx.play(&"click")
+	_tuning = on and not _over
+	_size_panel.visible = _tuning
+	_size_button.visible = not _tuning and not _over
+	_player.tuning = _tuning
+
+
+func _on_scale_changed(value: float) -> void:
+	Progress.unit_scale = value
+	_player.set_body_scale(value)
+	for child in _world.get_children():
+		var target := child as Breakable
+		if target != null:
+			target.scale = Vector2.ONE * value
+	_refresh_size_label()
+
+
+func _refresh_size_label() -> void:
+	_size_label.text = "キャラの大きさ ×%.2f" % Progress.unit_scale
 
 
 func _apply_styles() -> void:
@@ -125,7 +241,7 @@ func _apply_styles() -> void:
 func _process(delta: float) -> void:
 	_shake = maxf(_shake - SHAKE_DECAY * delta, 0.0)
 	position = Vector2(randf_range(-_shake, _shake), randf_range(-_shake, _shake))
-	if _over:
+	if _over or _tuning:
 		return
 	_time_left = maxf(_time_left - delta, 0.0)
 	if _time_left <= 0.0:
@@ -180,6 +296,7 @@ func _spawn(scene: PackedScene, base_hp: int, reward: int, area: Vector2, taken:
 	target.base_hp = base_hp
 	target.reward = reward
 	target.position = _find_free_spot(area, taken)
+	target.scale = Vector2.ONE * Progress.unit_scale
 	taken.append(target.position)
 	target.broken.connect(_on_broken)
 	target.damaged.connect(_on_damaged)
@@ -207,6 +324,7 @@ func _spawn_boss() -> void:
 	_boss.base_hp = _stage.boss_hp
 	_boss.reward = _stage.boss_gem
 	_boss.position = spot
+	_boss.scale = Vector2.ONE * Progress.unit_scale
 	_boss.target = _player
 	_boss.speed = _stage.boss_speed
 	_boss.contact_damage = Balance.get_int("boss_contact_damage")
@@ -238,7 +356,7 @@ func _find_free_spot(area: Vector2, taken: Array[Vector2]) -> Vector2:
 func _on_damaged(target: Breakable, amount: int) -> void:
 	if _over or amount <= 0:
 		return
-	var above := target.bar_lift() + Breakable.BAR_HEIGHT + 8.0
+	var above := (target.bar_lift() + Breakable.BAR_HEIGHT) * target.scale.x + 8.0
 	var at := target.global_position + Vector2(randf_range(-DAMAGE_JITTER, DAMAGE_JITTER), -above)
 	_popup(at, str(amount), DAMAGE_COLOR, DAMAGE_SIZE, DAMAGE_LIFETIME)
 
@@ -400,6 +518,10 @@ func _popup(at: Vector2, text: String, color: Color, size := 26, lifetime := 0.8
 
 func _finish() -> void:
 	_over = true
+	_tuning = false
+	_player.tuning = false
+	_size_panel.visible = false
+	_size_button.visible = false
 	_world.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
 	_stick.visible = false
 	_banner.visible = false
