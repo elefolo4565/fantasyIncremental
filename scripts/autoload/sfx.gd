@@ -6,7 +6,7 @@ extends Node
 ## オートロードは素材の取り込みより先に読まれるので、preload ではなく起動後に load する
 const SOUNDS := {
 	&"boss_break": "res://assets/audio/se/se_boss_break_maoudamashii_battle_explosion05.ogg",
-	&"break": "res://assets/audio/se/se_break_maoudamashii_battle_explosion06.ogg",
+	&"break": "res://assets/audio/se/se_break_maoudamashii_8bit16.ogg",
 	&"buy": "res://assets/audio/se/se_buy_maoudamashii_system03.ogg",
 	&"clear": "res://assets/audio/se/se_clear_maoudamashii_jingle04.ogg",
 	&"click": "res://assets/audio/se/se_click_maoudamashii_system24.ogg",
