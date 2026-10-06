@@ -99,7 +99,7 @@ theme_override_colors/font_color = Color(1, 0.85, 0.35, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 12
 theme_override_font_sizes/font_size = 48
-text = "STAGE CLEAR!"
+text = "ステージクリア！"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -141,4 +141,4 @@ custom_minimum_size = Vector2(320, 72)
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 30
-text = "Back to Magic Tree"
+text = "魔導樹へ戻る"

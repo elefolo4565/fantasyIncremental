@@ -3,12 +3,15 @@ extends Node
 ## 起動引数に -- --smoke-run を付けると、全強化を最大にして最後のステージを直接始める（CI の動作確認用）。
 
 const TREE_SCENE := preload("res://scenes/upgrade_tree/upgrade_tree.tscn")
+const FONT := preload("res://assets/fonts/MPLUSRounded1c-ExtraBold-subset.ttf")
 const RUN_SCENE := preload("res://scenes/run/run.tscn")
 
 var _screen: Node
 
 
 func _ready() -> void:
+	# _draw() で使う文字も日本語が出るように、同梱フォントを既定にする
+	ThemeDB.fallback_font = FONT
 	if OS.get_cmdline_user_args().has("--smoke-run"):
 		Progress.enable_smoke_mode()
 		_show_run(Progress.stages.size() - 1)

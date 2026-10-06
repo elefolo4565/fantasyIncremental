@@ -1,19 +1,19 @@
 id,name,parent,max_level,value,cost_gem,cost_wood,col,row,desc,memo
-power,Bolt Power,,5,1,4|12|30|70|130,0|0|0|0|0,2,4,Bolts deal +{v} damage per level.,1段ごとに魔法弾のダメージが増える量。費用は段ごとに | で区切る
-fracture,Fracture,power,2,1,15|45,0|0,1,3,Slimes and trees spawn with {v} less durability per level.,1段ごとにスライム・木の耐久が減る量（最低1）
-twin,Twin Bolt,power,2,1,20|70,0|0,2,3,Fire {v} more bolt per level at another target.,1段ごとに同時に撃つ魔法弾の追加本数
-shatter,Shatter,power,2,1,25|75,0|0,3,3,Broken objects deal {v} damage per level to neighbors.,1段ごとに壊れた物が周り（shatter_radius）に与えるダメージ
-opening,Opening Blow,fracture,1,2,40,0,0,3,The first hit on an undamaged object deals +{v}.,無傷の物への最初の1発に足すダメージ
-finisher,Finisher,fracture,2,1,50|160,0|0,1,2,Objects break at once when durability drops to {v} per level or less.,1段ごとに「この耐久以下なら即壊れる」しきい値が上がる量
-focus,Focus,opening,1,1,35,0,0,2,Every {focus_every}th bolt deals x{focus_multiplier} damage.,1なら有効（何発ごと・倍率は balance.csv の focus_every / focus_multiplier）
-pierce,Pierce,twin,2,1,30|80,0|0,2,2,Bolts pass through {v} more object per level.,1段ごとに魔法弾が貫通できる数
-ricochet,Ricochet,pierce,1,1,150,0,2,1,After its last hit a bolt bounces to {v} more object.,魔法弾が最後に当たったあと別の物へ跳ね返る回数
-echo,Echo,shatter,1,1,120,0,3,2,Broken objects fire {v} free bolt at the nearest target.,壊れた物から撃ち出される魔法弾の本数
-woodsplitter,Woodsplitter,shatter,2,2,40|60,0|40,4,3,Bolts deal +{v} damage per level to trees.,1段ごとに木へのダメージに足す量
-withering,Withering,woodsplitter,1,1,0,60,4,2,Trees no longer regrow durability.,1なら有効（森の木の耐久が戻らなくなる）
-ring_start,Spirit Call,echo,1,1,80,0,3,1,Start each run with the Spirit Ring at Lv {v}.,ラン開始時の精霊の輪のレベル
-ring_power,Spirit Edge,ring_start,2,1,30|60,0|60,4,1,Spirit Ring orbs deal +{v} damage per level.,1段ごとに精霊の輪の玉のダメージに足す量
-ring_burst,Spirit Burst,ring_start,1,2,80,80,3,0,When the Spirit Ring levels up every object takes {v} damage.,精霊の輪のレベルが上がったとき画面の全ての物に与えるダメージ
-hourglass,Hourglass,,5,9,2|12|30|60|110,0|0|0|0|0,0,4,Runs last {v} more seconds per level.,1段ごとにラン1回の活動時間が伸びる秒数（例外: 時間・攻撃間隔・射程の強化）
-quick_cast,Quick Cast,,5,0.35,2|8|22|50|100,0|0|0|0|0,3,4,Cast bolts faster: +{v}x casts per second per level.,1段ごとに「1秒あたりの発数」が基本の何倍ぶん増えるか（間隔 = fire_interval ÷ (1 + 段×この値)）
-far_sight,Far Sight,,5,55,4|12|28|60|110,0|0|0|0|0,4,4,Auto-aim reaches {v} pixels farther per level.,1段ごとに自動攻撃の射程が伸びるピクセル数
+power,魔弾強化,,5,1,4|12|30|70|130,0|0|0|0|0,2,4,魔法弾のダメージが1段ごとに+{v}。,1段ごとに魔法弾のダメージが増える量。費用は段ごとに | で区切る
+fracture,亀裂,power,2,1,15|45,0|0,1,3,スライムと木の耐久が1段ごとに{v}減る。,1段ごとにスライム・木の耐久が減る量（最低1）
+twin,双子弾,power,2,1,20|70,0|0,2,3,1段ごとに別の相手へ魔法弾をもう{v}発撃つ。,1段ごとに同時に撃つ魔法弾の追加本数
+shatter,砕裂,power,2,1,25|75,0|0,3,3,倒した相手が、周りに1段ごとに{v}ダメージを与える。,1段ごとに壊れた物が周り（shatter_radius）に与えるダメージ
+opening,先制の一撃,fracture,1,2,40,0,0,3,無傷の相手への最初の1発が+{v}ダメージ。,無傷の物への最初の1発に足すダメージ
+finisher,とどめ,fracture,2,1,50|160,0|0,1,2,耐久が1段ごとに{v}以下になったら、その場で倒す。,1段ごとに「この耐久以下なら即壊れる」しきい値が上がる量
+focus,集中,opening,1,1,35,0,0,2,{focus_every}発ごとに、{focus_multiplier}倍ダメージの1発になる。,1なら有効（何発ごと・倍率は balance.csv の focus_every / focus_multiplier）
+pierce,貫通,twin,2,1,30|80,0|0,2,2,魔法弾が1段ごとに{v}体多く突き抜ける。,1段ごとに魔法弾が貫通できる数
+ricochet,跳弾,pierce,1,1,150,0,2,1,最後に当たったあと、別の相手へ{v}回跳ね返る。,魔法弾が最後に当たったあと別の物へ跳ね返る回数
+echo,残響,shatter,1,1,120,0,3,2,倒した相手から、近くの相手へ魔法弾が{v}発飛ぶ。,壊れた物から撃ち出される魔法弾の本数
+woodsplitter,木こり,shatter,2,2,40|60,0|40,4,3,木へのダメージが1段ごとに+{v}。,1段ごとに木へのダメージに足す量
+withering,枯死,woodsplitter,1,1,0,60,4,2,木の耐久が戻らなくなる。,1なら有効（森の木の耐久が戻らなくなる）
+ring_start,精霊の呼び声,echo,1,1,80,0,3,1,精霊の輪がLv{v}の状態でランが始まる。,ラン開始時の精霊の輪のレベル
+ring_power,精霊の刃,ring_start,2,1,30|60,0|60,4,1,精霊の輪の玉のダメージが1段ごとに+{v}。,1段ごとに精霊の輪の玉のダメージに足す量
+ring_burst,精霊の爆発,ring_start,1,2,80,80,3,0,精霊の輪のレベルが上がるたび、全ての相手に{v}ダメージ。,精霊の輪のレベルが上がったとき画面の全ての物に与えるダメージ
+hourglass,砂時計,,5,9,2|12|30|60|110,0|0|0|0|0,0,4,ランの活動時間が1段ごとに{v}秒伸びる。,1段ごとにラン1回の活動時間が伸びる秒数（例外: 時間・攻撃間隔・射程の強化）
+quick_cast,速詠唱,,5,0.35,2|8|22|50|100,0|0|0|0|0,3,4,撃つ速さが1段ごとに基本の{v}倍ぶん上がる。,1段ごとに「1秒あたりの発数」が基本の何倍ぶん増えるか（間隔 = fire_interval ÷ (1 + 段×この値)）
+far_sight,遠見,,5,55,4|12|28|60|110,0|0|0|0|0,4,4,自動攻撃の射程が1段ごとに{v}伸びる。,1段ごとに自動攻撃の射程が伸びるピクセル数

@@ -19,7 +19,7 @@ offset_right = 328.0
 offset_bottom = 56.0
 theme_override_colors/font_color = Color(1, 0.85, 0.35, 1)
 theme_override_font_sizes/font_size = 32
-text = "MAGIC TREE"
+text = "魔導樹"
 
 [node name="MaterialLabel" type="Label" parent="."]
 layout_mode = 0
@@ -51,7 +51,7 @@ offset_bottom = -14.0
 grow_vertical = 0
 focus_mode = 0
 theme_override_font_sizes/font_size = 18
-text = "Reset save"
+text = "最初からやり直す"
 
 [node name="Side" type="VBoxContainer" parent="."]
 layout_mode = 1
@@ -110,7 +110,7 @@ custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 focus_mode = 0
 theme_override_font_sizes/font_size = 28
-text = "LEARN"
+text = "覚える"
 
 [node name="StagePanel" type="PanelContainer" parent="Side"]
 layout_mode = 2
@@ -155,4 +155,4 @@ custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 focus_mode = 0
 theme_override_font_sizes/font_size = 34
-text = "START RUN"
+text = "出発！"
