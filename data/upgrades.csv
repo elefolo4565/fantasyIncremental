@@ -1,6 +1,6 @@
-id,name,parent,max_level,value,cost_stone,cost_wood,col,row,desc,memo
-power,Bolt Power,,3,1,8|30|120,0|0|0,2,4,Bolts deal +{v} damage per level.,1段ごとに魔法弾のダメージが増える量。費用は段ごとに | で区切る
-fracture,Fracture,power,2,1,15|45,0|0,1,3,Rocks and trees spawn with {v} less durability per level.,1段ごとに岩・木の耐久が減る量（最低1）
+id,name,parent,max_level,value,cost_gem,cost_wood,col,row,desc,memo
+power,Bolt Power,,5,1,4|12|30|70|130,0|0|0|0|0,2,4,Bolts deal +{v} damage per level.,1段ごとに魔法弾のダメージが増える量。費用は段ごとに | で区切る
+fracture,Fracture,power,2,1,15|45,0|0,1,3,Slimes and trees spawn with {v} less durability per level.,1段ごとにスライム・木の耐久が減る量（最低1）
 twin,Twin Bolt,power,2,1,20|70,0|0,2,3,Fire {v} more bolt per level at another target.,1段ごとに同時に撃つ魔法弾の追加本数
 shatter,Shatter,power,2,1,25|75,0|0,3,3,Broken objects deal {v} damage per level to neighbors.,1段ごとに壊れた物が周り（shatter_radius）に与えるダメージ
 opening,Opening Blow,fracture,1,2,40,0,0,3,The first hit on an undamaged object deals +{v}.,無傷の物への最初の1発に足すダメージ
@@ -14,3 +14,6 @@ withering,Withering,woodsplitter,1,1,0,60,4,2,Trees no longer regrow durability.
 ring_start,Spirit Call,echo,1,1,80,0,3,1,Start each run with the Spirit Ring at Lv {v}.,ラン開始時の精霊の輪のレベル
 ring_power,Spirit Edge,ring_start,2,1,30|60,0|60,4,1,Spirit Ring orbs deal +{v} damage per level.,1段ごとに精霊の輪の玉のダメージに足す量
 ring_burst,Spirit Burst,ring_start,1,2,80,80,3,0,When the Spirit Ring levels up every object takes {v} damage.,精霊の輪のレベルが上がったとき画面の全ての物に与えるダメージ
+hourglass,Hourglass,,5,9,2|12|30|60|110,0|0|0|0|0,0,4,Runs last {v} more seconds per level.,1段ごとにラン1回の活動時間が伸びる秒数（例外: 時間・攻撃間隔・射程の強化）
+quick_cast,Quick Cast,,5,0.35,2|8|22|50|100,0|0|0|0|0,3,4,Cast bolts faster: +{v}x casts per second per level.,1段ごとに「1秒あたりの発数」が基本の何倍ぶん増えるか（間隔 = fire_interval ÷ (1 + 段×この値)）
+far_sight,Far Sight,,5,55,4|12|28|60|110,0|0|0|0|0,4,4,Auto-aim reaches {v} pixels farther per level.,1段ごとに自動攻撃の射程が伸びるピクセル数

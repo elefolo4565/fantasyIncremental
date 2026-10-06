@@ -3,7 +3,7 @@ extends RefCounted
 ## 強化の段から戦闘の数値（ダメージ・耐久・あと何発で壊れるか）を計算する。
 ## levels を差し替えれば「この強化を買ったら何発になるか」も同じ式で計算できる。
 
-const ROCK := &"rock"
+const SLIME := &"slime"
 const OAK := &"oak"
 
 
@@ -59,3 +59,18 @@ static func hits_from(kind: StringName, hp: int, undamaged: bool, levels: Dictio
 ## 新品の物（耐久 base_hp）を壊すのに必要な回数。
 static func hits_to_break(kind: StringName, base_hp: int, levels: Dictionary) -> int:
 	return hits_from(kind, max_hp(base_hp, levels), true, levels)
+
+
+## ラン1回の活動時間（秒）。Hourglass で伸びる。
+static func run_time(levels: Dictionary) -> float:
+	return Balance.get_float("run_time") + effect(&"hourglass", levels)
+
+
+## 魔法弾を撃つ間隔（秒）。Quick Cast の段ごとに「1秒あたりの発数」が value 倍ずつ増える。
+static func fire_interval(levels: Dictionary) -> float:
+	return Balance.get_float("fire_interval") / (1.0 + effect(&"quick_cast", levels))
+
+
+## 自動攻撃が狙える距離（ピクセル）。Far Sight で伸びる。
+static func fire_range(levels: Dictionary) -> float:
+	return Balance.get_float("fire_range") + effect(&"far_sight", levels)

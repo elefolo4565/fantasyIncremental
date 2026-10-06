@@ -28,7 +28,7 @@ offset_top = 16.0
 offset_right = 780.0
 offset_bottom = 56.0
 theme_override_font_sizes/font_size = 28
-text = "Stone 0    Wood 0"
+text = "Gem 0    Wood 0"
 
 [node name="Nodes" type="Control" parent="."]
 layout_mode = 1
@@ -96,14 +96,14 @@ autowrap_mode = 3
 [node name="Cost" type="Label" parent="Side/Detail/Box"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
-text = "Cost: 8 Stone"
+text = "Cost: 8 Gem"
 
 [node name="Preview" type="Label" parent="Side/Detail/Box"]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_colors/font_color = Color(0.6, 1, 0.6, 1)
 theme_override_font_sizes/font_size = 24
-text = "Rock: 7 -> 4 hits"
+text = "Slime: 7 -> 4 hits"
 
 [node name="BuyButton" type="Button" parent="Side/Detail/Box"]
 custom_minimum_size = Vector2(0, 64)
@@ -146,7 +146,7 @@ text = ">"
 [node name="StageInfo" type="Label" parent="Side/StagePanel/Box"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "Rock 7 hits
+text = "Slime 7 hits
 Goal: break 8 in 60s"
 horizontal_alignment = 1
 

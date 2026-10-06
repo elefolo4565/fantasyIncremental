@@ -2,19 +2,55 @@ class_name Player
 extends CharacterBody2D
 ## プレイヤー。スティックかキーボードで動き、近くの壊せる物へ魔法弾を自動で撃つ。
 ## 魔導樹の Twin Bolt で1度に撃つ数が増え、Focus で数発ごとに強い1発になる。
+## モンスターに触れると体力が減り、少しのあいだ無敵になって弾き飛ばされる。体力が 0 になると died を出す。
+
+signal hurt
+signal died
 
 const BOLT_SCENE := preload("res://scenes/bolt/bolt.tscn")
 const RADIUS := 20.0
 const COLOR := Color(0.95, 0.85, 0.4)
+const HURT_COLOR := Color(1.0, 0.35, 0.3)
+const BLINK_RATE := 18.0
 
 var stick: VirtualStick
+var max_hp := 1
+var hp := 1
 
 var _fire_cooldown := 0.0
+var _invincible := 0.0
+var _knockback := Vector2.ZERO
 var _shot_count := 0
 
 
+func _ready() -> void:
+	max_hp = maxi(Balance.get_int("player_hp"), 1)
+	hp = max_hp
+
+
+func is_alive() -> bool:
+	return hp > 0
+
+
+## from から押し返されるように弾き飛ぶ。無敵のあいだは何もしない。
+func take_damage(amount: int, from: Vector2) -> void:
+	if hp <= 0 or _invincible > 0.0:
+		return
+	hp = maxi(hp - amount, 0)
+	_invincible = Balance.get_float("player_invincible_time")
+	_knockback = from.direction_to(global_position) * Balance.get_float("player_knockback")
+	queue_redraw()
+	hurt.emit()
+	if hp <= 0:
+		died.emit()
+
+
 func _physics_process(delta: float) -> void:
-	velocity = _read_move_input() * Balance.get_float("player_speed")
+	if _invincible > 0.0:
+		_invincible = maxf(_invincible - delta, 0.0)
+		queue_redraw()
+	_knockback = _knockback.move_toward(Vector2.ZERO, Balance.get_float("player_knockback") * 4.0 * delta)
+	velocity = _read_move_input() * Balance.get_float("player_speed") + _knockback
 	move_and_slide()
 	var area := get_viewport_rect().size
 	global_position = global_position.clamp(Vector2(RADIUS, RADIUS), area - Vector2(RADIUS, RADIUS))
@@ -25,10 +61,13 @@ func _physics_process(delta: float) -> void:
 		var targets := _find_targets(bolt_count)
 		if not targets.is_empty():
 			_fire_volley(targets, bolt_count)
-			_fire_cooldown = Balance.get_float("fire_interval")
+			_fire_cooldown = Stats.fire_interval(Progress.levels)
 
 
 func _draw() -> void:
+	if _invincible > 0.0 and int(_invincible * BLINK_RATE) % 2 == 0:
+		draw_circle(Vector2.ZERO, RADIUS, HURT_COLOR)
+		return
 	draw_circle(Vector2.ZERO, RADIUS, COLOR)
 	draw_arc(Vector2.ZERO, RADIUS, 0.0, TAU, 32, Color(0.3, 0.2, 0.1), 3.0)
 
@@ -47,7 +86,7 @@ func _read_move_input() -> Vector2:
 ## 射程内の壊せる物を近い順に最大 count 個返す。
 func _find_targets(count: int) -> Array[Breakable]:
 	var in_range: Array[Breakable] = []
-	var fire_range := Balance.get_float("fire_range")
+	var fire_range := Stats.fire_range(Progress.levels)
 	for node in get_tree().get_nodes_in_group(Breakable.GROUP):
 		var candidate := node as Breakable
 		if candidate != null and global_position.distance_to(candidate.global_position) < fire_range:

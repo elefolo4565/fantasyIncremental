@@ -1,14 +1,22 @@
 key,value,memo
+run_time,15,強化なしのラン1回の活動時間（秒）。魔導樹の Hourglass で伸びる
 player_speed,260,プレイヤーの移動速度（ピクセル/秒）
-fire_interval,0.45,魔法弾を自動で撃つ間隔（秒）
-fire_range,420,自動攻撃が狙える距離（ピクセル）
+player_hp,3,プレイヤーの体力。0になるとランが終わる
+player_invincible_time,1,ダメージを受けたあと無敵になる時間（秒）
+player_knockback,420,ダメージを受けたときに弾き飛ばされる速さ（ピクセル/秒）
+slime_contact_damage,1,スライムに触れたときに減る体力
+slime_aggro_range,220,スライムがプレイヤーに気づいて寄ってくる距離（ピクセル）。湧くときもこれより離れた場所を選ぶ
+slime_chase_multiplier,1.3,プレイヤーに寄ってくるときの速さの倍率（stages.csv の slime_speed に掛ける）
+slime_touch_reach,22,スライムの縁からこの距離にプレイヤーの中心が入ったら当たり（ピクセル）
+fire_interval,1.2,強化なしで魔法弾を自動で撃つ間隔（秒）。魔導樹の Quick Cast で短くなる
+fire_range,170,強化なしで自動攻撃が狙える距離（ピクセル）。魔導樹の Far Sight で伸びる
 bolt_speed,720,魔法弾の飛ぶ速さ（ピクセル/秒）
 bolt_damage,1,強化なしの魔法弾1発で減らす耐久
 twin_spread,14,狙う相手が足りないとき、追加の魔法弾をずらす角度（度）
 focus_every,3,集中（Focus）で何発ごとに強い1発になるか（発）
 focus_multiplier,2,集中の1発のダメージ倍率（倍）
 shatter_radius,150,砕裂（Shatter）で壊れた物が周りにダメージを与える範囲（ピクセル）
-rock_respawn_time,3,壊れた岩が復活するまでの時間（秒）
+slime_respawn_time,3,倒したスライムが別の場所に湧き直すまでの時間（秒）
 oak_respawn_time,4,壊れた木が復活するまでの時間（秒）
 oak_regen_delay,1.5,森の木が最後に攻撃されてから耐久が戻り始めるまでの時間（秒）
 oak_regen_interval,0.5,森の木の耐久が1戻る間隔（秒）
