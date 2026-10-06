@@ -32,6 +32,7 @@ func _show_run(stage_index: int) -> void:
 	var run := RUN_SCENE.instantiate() as Run
 	run.stage_index = stage_index
 	run.finished.connect(_show_tree)
+	run.retry_requested.connect(_show_run)
 	Bgm.play(&"battle")
 	_switch_to(run)
 
