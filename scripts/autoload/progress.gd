@@ -1,0 +1,142 @@
+extends Node
+## 魔導樹の強化の段・素材・解放したステージを持つオートロード。
+## 強化ノードとステージの定義は data/upgrades.csv と data/stages.csv から読む。
+## 進み具合は user://save.cfg に保存する（Web 版ではブラウザの中に残る）。
+
+signal changed
+
+const SAVE_PATH := "user://save.cfg"
+const UPGRADES_PATH := "res://data/upgrades.csv"
+const STAGES_PATH := "res://data/stages.csv"
+
+var stone := 0
+var wood := 0
+## 強化の id → 今の段
+var levels: Dictionary = {}
+## 遊べる一番先のステージ（stages の番号）
+var unlocked_stage := 0
+var selected_stage := 0
+
+var upgrades: Array[UpgradeDef] = []
+var stages: Array[StageDef] = []
+
+var _by_id: Dictionary = {}
+var _saving := true
+
+
+func _ready() -> void:
+	for row in Balance.load_table(UPGRADES_PATH):
+		var def := UpgradeDef.from_row(row)
+		upgrades.append(def)
+		_by_id[def.id] = def
+	for row in Balance.load_table(STAGES_PATH):
+		stages.append(StageDef.from_row(row))
+	_load_save()
+
+
+func upgrade(id: StringName) -> UpgradeDef:
+	return _by_id.get(id) as UpgradeDef
+
+
+func level(id: StringName) -> int:
+	return levels.get(id, 0)
+
+
+func is_unlocked(def: UpgradeDef) -> bool:
+	return def.parent == &"" or level(def.parent) > 0
+
+
+func is_maxed(def: UpgradeDef) -> bool:
+	return level(def.id) >= def.max_level
+
+
+func next_cost(def: UpgradeDef) -> Vector2i:
+	return def.cost_for(level(def.id))
+
+
+func can_buy(def: UpgradeDef) -> bool:
+	if not is_unlocked(def) or is_maxed(def):
+		return false
+	var cost := next_cost(def)
+	return stone >= cost.x and wood >= cost.y
+
+
+func buy(def: UpgradeDef) -> bool:
+	if not can_buy(def):
+		return false
+	var cost := next_cost(def)
+	stone -= cost.x
+	wood -= cost.y
+	levels[def.id] = level(def.id) + 1
+	_changed()
+	return true
+
+
+func add_materials(gained_stone: int, gained_wood: int) -> void:
+	stone += gained_stone
+	wood += gained_wood
+	changed.emit()
+
+
+## ステージをクリアしたときに呼ぶ。新しいステージが解放されたら true。
+func clear_stage(index: int) -> bool:
+	if index == unlocked_stage and unlocked_stage < stages.size() - 1:
+		unlocked_stage += 1
+		selected_stage = unlocked_stage
+		_changed()
+		return true
+	_changed()
+	return false
+
+
+func reset() -> void:
+	stone = 0
+	wood = 0
+	levels.clear()
+	unlocked_stage = 0
+	selected_stage = 0
+	_changed()
+
+
+## CI の動作確認用。全ての強化を最大にし、保存しない。
+func enable_smoke_mode() -> void:
+	_saving = false
+	for def in upgrades:
+		levels[def.id] = def.max_level
+	unlocked_stage = stages.size() - 1
+	selected_stage = unlocked_stage
+
+
+func save() -> void:
+	if not _saving:
+		return
+	var config := ConfigFile.new()
+	config.set_value("materials", "stone", stone)
+	config.set_value("materials", "wood", wood)
+	config.set_value("stages", "unlocked", unlocked_stage)
+	config.set_value("stages", "selected", selected_stage)
+	for id in levels:
+		config.set_value("levels", String(id), levels[id])
+	var error := config.save(SAVE_PATH)
+	if error != OK:
+		push_warning("進み具合を保存できませんでした (error %d)" % error)
+
+
+func _changed() -> void:
+	save()
+	changed.emit()
+
+
+func _load_save() -> void:
+	var config := ConfigFile.new()
+	if config.load(SAVE_PATH) != OK:
+		return
+	stone = config.get_value("materials", "stone", 0)
+	wood = config.get_value("materials", "wood", 0)
+	unlocked_stage = clampi(config.get_value("stages", "unlocked", 0), 0, stages.size() - 1)
+	selected_stage = clampi(config.get_value("stages", "selected", 0), 0, unlocked_stage)
+	if config.has_section("levels"):
+		for key in config.get_section_keys("levels"):
+			var def := upgrade(StringName(key))
+			if def != null:
+				levels[def.id] = clampi(config.get_value("levels", key, 0), 0, def.max_level)

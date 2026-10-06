@@ -1,0 +1,158 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/upgrade_tree/upgrade_tree.gd" id="1_tree"]
+
+[node name="UpgradeTree" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_tree")
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 0
+offset_left = 28.0
+offset_top = 12.0
+offset_right = 328.0
+offset_bottom = 56.0
+theme_override_colors/font_color = Color(1, 0.85, 0.35, 1)
+theme_override_font_sizes/font_size = 32
+text = "MAGIC TREE"
+
+[node name="MaterialLabel" type="Label" parent="."]
+layout_mode = 0
+offset_left = 300.0
+offset_top = 16.0
+offset_right = 780.0
+offset_bottom = 56.0
+theme_override_font_sizes/font_size = 28
+text = "Stone 0    Wood 0"
+
+[node name="Nodes" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ResetButton" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 28.0
+offset_top = -52.0
+offset_right = 248.0
+offset_bottom = -14.0
+grow_vertical = 0
+focus_mode = 0
+theme_override_font_sizes/font_size = 18
+text = "Reset save"
+
+[node name="Side" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -440.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 0
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="Detail" type="PanelContainer" parent="Side"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Box" type="VBoxContainer" parent="Side/Detail"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Name" type="Label" parent="Side/Detail/Box"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.35, 1)
+theme_override_font_sizes/font_size = 30
+text = "Bolt Power"
+
+[node name="Level" type="Label" parent="Side/Detail/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Lv 0 / 3"
+
+[node name="Desc" type="Label" parent="Side/Detail/Box"]
+custom_minimum_size = Vector2(380, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Bolts deal +1 damage per level."
+autowrap_mode = 3
+
+[node name="Cost" type="Label" parent="Side/Detail/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Cost: 8 Stone"
+
+[node name="Preview" type="Label" parent="Side/Detail/Box"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.6, 1, 0.6, 1)
+theme_override_font_sizes/font_size = 24
+text = "Rock: 7 -> 4 hits"
+
+[node name="BuyButton" type="Button" parent="Side/Detail/Box"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 28
+text = "LEARN"
+
+[node name="StagePanel" type="PanelContainer" parent="Side"]
+layout_mode = 2
+
+[node name="Box" type="VBoxContainer" parent="Side/StagePanel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Row" type="HBoxContainer" parent="Side/StagePanel/Box"]
+layout_mode = 2
+
+[node name="PrevButton" type="Button" parent="Side/StagePanel/Box/Row"]
+custom_minimum_size = Vector2(64, 56)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 28
+text = "<"
+
+[node name="StageLabel" type="Label" parent="Side/StagePanel/Box/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 28
+text = "Plains 1"
+horizontal_alignment = 1
+
+[node name="NextButton" type="Button" parent="Side/StagePanel/Box/Row"]
+custom_minimum_size = Vector2(64, 56)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 28
+text = ">"
+
+[node name="StageInfo" type="Label" parent="Side/StagePanel/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Rock 7 hits
+Goal: break 8 in 60s"
+horizontal_alignment = 1
+
+[node name="StartButton" type="Button" parent="Side/StagePanel/Box"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 34
+text = "START RUN"
