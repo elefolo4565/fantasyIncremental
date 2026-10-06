@@ -3,6 +3,7 @@ extends CharacterBody2D
 ## プレイヤー。スティックかキーボードで動き、近くの壊せる物へ魔法弾を自動で撃つ。
 ## 魔導樹の Twin Bolt で1度に撃つ数が増え、Focus で数発ごとに強い1発になる。
 ## モンスターに触れると体力が減り、少しのあいだ無敵になって弾き飛ばされる。体力が 0 になると died を出す。
+## 草地（Grass）の中では移動が遅くなる。
 ## tuning が true のあいだ（大きさの調整中）は無敵で、攻撃もしない。
 
 signal hurt
@@ -75,7 +76,8 @@ func _physics_process(delta: float) -> void:
 		_facing = move.normalized()
 		_walk += delta * 14.0
 		queue_redraw()
-	velocity = move * Balance.get_float("player_speed") + _knockback
+	var grass_rate := Grass.rate_at(get_tree(), global_position, Balance.get_float("grass_player_speed_rate"))
+	velocity = move * Balance.get_float("player_speed") * grass_rate + _knockback
 	move_and_slide()
 	var area := get_viewport_rect().size
 	var margin := Vector2.ONE * RADIUS * _body_scale

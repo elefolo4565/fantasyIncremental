@@ -5,12 +5,14 @@ extends Node2D
 ## 砕裂（Shatter）・残響（Echo）・精霊の輪のレベルアップもここで扱う。
 ## モンスター（Slime）は稼ぎの元であり脅威でもある。触れると体力が減り、体力が 0 になるとそこでランが終わる。
 ## クリア・時間切れ・やられたら結果を表示し、戻るボタンで finished を出す。
-## 右上の「大きさ」から、敵とプレイヤーの大きさの倍率をつまみで試せる（開いているあいだは時間が止まり、無敵で攻撃しない）。
+## 平原の2面からは草地（Grass）を置く。数は stages.csv の grass × Progress.grass_scale。
+## 右上の「調整」から、キャラの大きさの倍率と草地の数の倍率をつまみで試せる（開いているあいだは時間が止まり、無敵で攻撃しない）。
 
 signal finished
 
 const PLAYER_SCENE := preload("res://scenes/player/player.tscn")
 const SLIME_SCENE := preload("res://scenes/slime/slime.tscn")
+const DASHER_SCENE := preload("res://scenes/dasher/dasher.tscn")
 const BOSS_SCENE := preload("res://scenes/boss/boss.tscn")
 const PICKUP_SCENE := preload("res://scenes/pickup/pickup.tscn")
 const OAK_SCENE := preload("res://scenes/oak/oak.tscn")
@@ -18,6 +20,7 @@ const BOLT_SCENE := preload("res://scenes/bolt/bolt.tscn")
 const RING_SCENE := preload("res://scenes/spirit_ring/spirit_ring.tscn")
 const DEBRIS_SCENE := preload("res://scenes/debris/debris.tscn")
 const POPUP_SCENE := preload("res://scenes/popup_text/popup_text.tscn")
+const GRASS_SCENE := preload("res://scenes/grass/grass.tscn")
 
 const EDGE_MARGIN := 80.0
 const TOP_MARGIN := 150.0
@@ -52,6 +55,12 @@ const SCALE_MIN := 0.4
 const SCALE_MAX := 1.5
 const SCALE_STEP := 0.05
 const GRABBER_RADIUS := 22
+const GRASS_SCALE_MIN := 0.0
+const GRASS_SCALE_MAX := 3.0
+const GRASS_SCALE_STEP := 0.25
+## 草地をプレイヤーの開始位置から離す余白（ピクセル）
+const GRASS_START_CLEARANCE := 70.0
+const GRASS_SPOT_TRIES := 40
 
 ## 生成する側が add_child の前に入れる
 var stage_index := 0
@@ -77,6 +86,12 @@ var _tuning := false
 var _size_button: Button
 var _size_panel: PanelContainer
 var _size_label: Label
+var _grass_label: Label
+## つまみで増やしたときに同じ場所へ出せるよう、草地の場所と半径を最大数まで先に決めておく
+var _grass_spots: Array[Vector3] = []
+var _grass_nodes: Array[Grass] = []
+## 草地は地面のすぐ上に描く（World は y 順で並べるので、その手前に別の層を置く）
+var _grass_layer: Node2D
 
 @onready var _world: Node2D = $World
 @onready var _stick: VirtualStick = $HUD/VirtualStick
@@ -114,9 +129,16 @@ func _ready() -> void:
 	_player.add_child(_ring)
 	_ring.level = mini(roundi(Stats.effect(&"ring_start", Progress.levels)), Balance.get_int("ring_max_level"))
 
+	_grass_layer = Node2D.new()
+	add_child(_grass_layer)
+	move_child(_grass_layer, _world.get_index())
+	_plan_grass(area)
+	_apply_grass()
 	var taken: Array[Vector2] = [_player.position]
 	for _i in _stage.slime_count:
 		_spawn(SLIME_SCENE, _stage.slime_hp, _stage.slime_gem, area, taken)
+	for _i in _stage.dasher_count:
+		_spawn(DASHER_SCENE, _stage.slime_hp, _stage.slime_gem, area, taken)
 	for _i in _stage.oak_count:
 		_spawn(OAK_SCENE, _stage.oak_hp, _stage.oak_wood, area, taken)
 	_build_size_tuner()
@@ -129,7 +151,7 @@ func _ready() -> void:
 func _build_size_tuner() -> void:
 	var hud := $HUD as CanvasLayer
 	_size_button = Button.new()
-	_size_button.text = "大きさ"
+	_size_button.text = "調整"
 	_size_button.focus_mode = Control.FOCUS_NONE
 	_size_button.add_theme_font_size_override("font_size", 24)
 	_size_button.position = Vector2(get_viewport_rect().size.x - 164.0, 66.0)
@@ -161,6 +183,21 @@ func _build_size_tuner() -> void:
 	slider.value_changed.connect(_on_scale_changed)
 	_style_slider(slider)
 	box.add_child(slider)
+	_grass_label = Label.new()
+	_grass_label.add_theme_font_size_override("font_size", 28)
+	_grass_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UiStyle.outline_label(_grass_label)
+	box.add_child(_grass_label)
+	var grass_slider := HSlider.new()
+	grass_slider.min_value = GRASS_SCALE_MIN
+	grass_slider.max_value = GRASS_SCALE_MAX
+	grass_slider.step = GRASS_SCALE_STEP
+	grass_slider.value = Progress.grass_scale
+	grass_slider.custom_minimum_size = Vector2(0, 56)
+	grass_slider.focus_mode = Control.FOCUS_NONE
+	grass_slider.value_changed.connect(_on_grass_scale_changed)
+	_style_slider(grass_slider)
+	box.add_child(grass_slider)
 	var note := Label.new()
 	note.text = "調整中は時間が止まり、無敵で攻撃しません"
 	note.add_theme_font_size_override("font_size", 18)
@@ -227,6 +264,42 @@ func _on_scale_changed(value: float) -> void:
 
 func _refresh_size_label() -> void:
 	_size_label.text = "キャラの大きさ ×%.2f" % Progress.unit_scale
+	_grass_label.text = "草の量 ×%.2f（%d か所）" % [Progress.grass_scale, _grass_nodes.size()]
+
+
+func _on_grass_scale_changed(value: float) -> void:
+	Progress.grass_scale = value
+	_apply_grass()
+	_refresh_size_label()
+
+
+## 草地を置ける場所を、つまみの最大まで増やしたときの数だけ先に決める。プレイヤーの開始位置には置かない。
+func _plan_grass(area: Vector2) -> void:
+	var most := ceili(_stage.grass * GRASS_SCALE_MAX)
+	var radius_min := Balance.get_float("grass_radius_min")
+	var radius_max := maxf(Balance.get_float("grass_radius_max"), radius_min)
+	for _i in most:
+		var radius := randf_range(radius_min, radius_max)
+		var spot := Vector2.ZERO
+		for _attempt in GRASS_SPOT_TRIES:
+			spot = Vector2(randf_range(radius, area.x - radius), randf_range(TOP_MARGIN * 0.5, area.y - radius))
+			if spot.distance_to(_player.position) >= radius + GRASS_START_CLEARANCE:
+				break
+		_grass_spots.append(Vector3(spot.x, spot.y, radius))
+
+
+## 今の倍率に合う数だけ草地を出す（増えた分は足し、減った分は消す）。
+func _apply_grass() -> void:
+	var count := mini(roundi(_stage.grass * Progress.grass_scale), _grass_spots.size())
+	while _grass_nodes.size() > count:
+		_grass_nodes.pop_back().queue_free()
+	while _grass_nodes.size() < count:
+		var plan := _grass_spots[_grass_nodes.size()]
+		var grass := GRASS_SCENE.instantiate() as Grass
+		grass.radius = plan.z
+		grass.position = Vector2(plan.x, plan.y)
+		_grass_layer.add_child(grass)
+		_grass_nodes.append(grass)
 
 
 func _apply_styles() -> void:

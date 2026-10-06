@@ -18,6 +18,8 @@ var unlocked_stage := 0
 var selected_stage := 0
 ## 敵・プレイヤーの大きさの倍率。戦闘画面のつまみで変えて試す（保存はしない）
 var unit_scale := 1.0
+## 草地の数の倍率（戦闘画面の「調整」つまみで変えられる。保存しない）
+var grass_scale := 1.0
 ## 設定: true ならタップした場所へ移動する（false なら仮想スティック）
 var tap_move := false
 ## 設定: BGM を鳴らすか
@@ -33,6 +35,7 @@ var _saving := true
 
 func _ready() -> void:
 	unit_scale = Balance.get_float("unit_scale")
+	grass_scale = Balance.get_float("grass_scale")
 	for row in Balance.load_table(UPGRADES_PATH):
 		var def := UpgradeDef.from_row(row)
 		upgrades.append(def)

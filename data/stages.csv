@@ -1,7 +1,9 @@
-id,name,world,slime_count,slime_hp,slime_gem,slime_speed,oak_count,oak_hp,oak_wood,boss_after,boss_hp,boss_gem,boss_speed,memo
-plains_1,平原 1,plains,6,6,2,55,0,0,0,2,12,6,40,平原1。スライム6匹・耐久6（強化なしで6発）・1匹で宝石2・移動速度55px/秒。2匹倒すとボス（耐久12・宝石6・速度40px/秒）が出て、倒せばクリア
-plains_2,平原 2,plains,7,10,2,65,0,0,0,5,30,10,48,平原2
-plains_3,平原 3,plains,8,14,3,75,0,0,0,8,50,15,55,平原3（ここをクリアすると森へ）
-forest_1,森 1,forest,5,14,3,75,4,16,1,10,60,20,60,森1。木（oak）は動かないが叩かずにいると耐久が戻る
-forest_2,森 2,forest,5,18,4,85,5,22,2,12,100,28,65,森2
-forest_3,森 3,forest,6,22,5,95,6,28,2,15,140,40,70,森3（試作の最終ステージ）
+id,name,world,slime_count,slime_hp,slime_gem,slime_speed,dasher_count,oak_count,oak_hp,oak_wood,boss_after,boss_hp,boss_gem,boss_speed,grass,memo
+plains_1,平原 1,plains,6,6,2,28,0,0,0,0,2,12,6,40,0,平原1。スライム6匹・耐久6（強化なしで6発）・1匹で宝石2・移動速度28px/秒（ユーザー指示で半分に）。2匹倒すとボス（耐久12・宝石6・速度40px/秒）が出て、倒せばクリア。草地（grass）は草地の数で、中では移動と魔法弾が遅くなる
+plains_2,平原 2,plains,7,10,2,65,1,0,0,0,5,30,10,48,2,平原2（ここから草地と突進スライム dasher_count が出る。草地はごく少なめ）
+plains_3,平原 3,plains,8,14,3,75,2,0,0,0,8,50,15,55,4,平原3
+plains_4,平原 4,plains,9,17,3,80,2,0,0,0,9,65,18,58,6,平原4
+plains_5,平原 5,plains,10,20,4,85,3,0,0,0,10,85,24,62,9,平原5（ここをクリアすると森へ）
+forest_1,森 1,forest,6,20,4,88,0,4,22,1,12,100,28,64,0,森1。木（oak）は動かないが叩かずにいると耐久が戻る
+forest_2,森 2,forest,6,24,5,92,0,5,28,2,13,130,34,68,0,森2
+forest_3,森 3,forest,7,28,6,100,0,6,34,2,15,170,46,72,0,森3（試作の最終ステージ）
