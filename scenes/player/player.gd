@@ -11,12 +11,17 @@ signal died
 
 const BOLT_SCENE := preload("res://scenes/bolt/bolt.tscn")
 const RADIUS := 20.0
-const ROBE_COLOR := Color(0.55, 0.3, 0.95)
-const HAT_COLOR := Color(0.32, 0.25, 0.85)
-const BAND_COLOR := Color(1.0, 0.8, 0.15)
-const SKIN_COLOR := Color(1.0, 0.82, 0.66)
-const STAFF_COLOR := Color(0.6, 0.38, 0.2)
-const GEM_COLOR := Color(0.4, 0.95, 1.0)
+## 3Dモデルを8方向×歩き4コマに焼いた絵（tools/render_player で作り直せる）。
+## 行が向き（画面の右から時計回りに45度ずつ）、列が歩きのコマ。
+const SHEET := preload("res://assets/sprites/player_sheet.png")
+const SHEET_CELL := 128
+const SHEET_DIRECTIONS := 8
+const SHEET_FRAMES := 4
+## コマの中で足元が来る位置（render_player.gd の FOOT と合わせる）。
+const SHEET_FOOT := Vector2(64, 112)
+## 絵の1ピクセルを、この体の座標で何単位に描くか。
+const SHEET_PIXEL := 1.1
+const FOOT_Y := 22.0
 const HURT_COLOR := Color(1.0, 0.35, 0.3)
 const DRAW_SCALE := 1.35
 const BLINK_RATE := 18.0
@@ -31,6 +36,7 @@ var _invincible := 0.0
 var _knockback := Vector2.ZERO
 var _facing := Vector2.RIGHT
 var _walk := 0.0
+var _moving := false
 var _shot_count := 0
 var _body_scale := 1.0
 
@@ -72,6 +78,9 @@ func _physics_process(delta: float) -> void:
 		queue_redraw()
 	_knockback = _knockback.move_toward(Vector2.ZERO, Balance.get_float("player_knockback") * 4.0 * delta)
 	var move := _read_move_input()
+	if _moving != (move != Vector2.ZERO):
+		_moving = move != Vector2.ZERO
+		queue_redraw()
 	if move != Vector2.ZERO:
 		_facing = move.normalized()
 		_walk += delta * 14.0
@@ -97,27 +106,16 @@ func _physics_process(delta: float) -> void:
 func _draw() -> void:
 	var blink := _invincible > 0.0 and int(_invincible * BLINK_RATE) % 2 == 0
 	var tint := Color.WHITE if not blink else HURT_COLOR
-	var bob := sin(_walk) * 2.5
-	var side := -1.0 if _facing.x < 0.0 else 1.0
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE * DRAW_SCALE * _body_scale)
-	Toon.shadow(self, Vector2(0, 22), Vector2(22, 8))
-	# 杖（体の後ろ側）
-	var staff_top := Vector2(side * 24, -30 + bob)
-	draw_line(Vector2(side * 18, 20), staff_top, Toon.OUTLINE, 9.0)
-	draw_line(Vector2(side * 18, 20), staff_top, STAFF_COLOR * tint, 4.0)
-	Toon.blob(self, staff_top, Vector2(7, 7), GEM_COLOR * tint)
-	# ローブ
-	var robe := PackedVector2Array([Vector2(-13, -2 + bob), Vector2(13, -2 + bob), Vector2(19, 22), Vector2(-19, 22)])
-	Toon.polygon(self, robe, ROBE_COLOR * tint)
-	# 大きな頭
-	var head := Vector2(0, -16 + bob)
-	Toon.blob(self, head, Vector2(17, 16), SKIN_COLOR * tint)
-	Toon.eye(self, head + Vector2(-6 + _facing.x * 3, 2), 4.0, _facing)
-	Toon.eye(self, head + Vector2(6 + _facing.x * 3, 2), 4.0, _facing)
-	# とんがり帽子
-	var hat := PackedVector2Array([head + Vector2(-22, -6), head + Vector2(22, -6), head + Vector2(-side * 6, -44)])
-	Toon.polygon(self, hat, HAT_COLOR * tint)
-	draw_line(head + Vector2(-20, -8), head + Vector2(20, -8), BAND_COLOR * tint, 6.0)
+	Toon.shadow(self, Vector2(0, FOOT_Y), Vector2(22, 8))
+	var direction := wrapi(roundi(_facing.angle() / (TAU / SHEET_DIRECTIONS)), 0, SHEET_DIRECTIONS)
+	var frame := 0
+	if _moving:
+		frame = int(_walk / TAU * SHEET_FRAMES) % SHEET_FRAMES
+	var source := Rect2(frame * SHEET_CELL, direction * SHEET_CELL, SHEET_CELL, SHEET_CELL)
+	var size := Vector2.ONE * SHEET_CELL * SHEET_PIXEL
+	var at := Vector2(0, FOOT_Y) - SHEET_FOOT * SHEET_PIXEL
+	draw_texture_rect_region(SHEET, Rect2(at, size), source, tint)
 
 
 func _read_move_input() -> Vector2:
