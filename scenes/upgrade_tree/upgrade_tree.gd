@@ -58,6 +58,7 @@ var _drag_distance := 0.0
 @onready var _reset_button: Button = $ResetButton
 @onready var _move_button: Button = $MoveButton
 @onready var _bgm_button: Button = $BgmButton
+@onready var _se_button: Button = $SeButton
 
 
 func _ready() -> void:
@@ -81,6 +82,7 @@ func _ready() -> void:
 	_reset_button.pressed.connect(_on_reset_pressed)
 	_move_button.pressed.connect(_on_move_pressed)
 	_bgm_button.pressed.connect(_on_bgm_pressed)
+	_se_button.pressed.connect(_on_se_pressed)
 	Progress.changed.connect(_refresh)
 	resized.connect(_layout)
 	_nodes.draw.connect(_draw_links)
@@ -102,6 +104,7 @@ func _apply_styles() -> void:
 	UiStyle.button(_reset_button, Color(0.85, 0.3, 0.3))
 	UiStyle.button(_move_button, UiStyle.BLUE)
 	UiStyle.button(_bgm_button, UiStyle.BLUE)
+	UiStyle.button(_se_button, UiStyle.BLUE)
 	for panel: PanelContainer in [$Side/Detail, $Side/StagePanel]:
 		panel.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.PANEL, 16, 4, 6))
 	for label: Label in [$Title, _material_label, _name_label, _level_label, _desc_label, _cost_label,
@@ -260,6 +263,7 @@ func _refresh() -> void:
 	_refresh_stage()
 	_move_button.text = "移動: タップ" if Progress.tap_move else "移動: スティック"
 	_bgm_button.text = "BGM: オン" if Progress.bgm_on else "BGM: オフ"
+	_se_button.text = "効果音: オン" if Progress.se_on else "効果音: オフ"
 	_nodes.queue_redraw()
 
 
@@ -420,6 +424,11 @@ func _on_move_pressed() -> void:
 func _on_bgm_pressed() -> void:
 	Sfx.play(&"click")
 	Progress.set_bgm_on(not Progress.bgm_on)
+
+
+func _on_se_pressed() -> void:
+	Progress.set_se_on(not Progress.se_on)
+	Sfx.play(&"click")
 
 
 func _on_reset_pressed() -> void:
