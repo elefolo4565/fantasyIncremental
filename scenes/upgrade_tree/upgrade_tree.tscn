@@ -53,6 +53,20 @@ focus_mode = 0
 theme_override_font_sizes/font_size = 18
 text = "最初からやり直す"
 
+[node name="MoveButton" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 264.0
+offset_top = -52.0
+offset_right = 484.0
+offset_bottom = -14.0
+grow_vertical = 0
+focus_mode = 0
+theme_override_font_sizes/font_size = 18
+text = "移動: スティック"
+
 [node name="Side" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 11
