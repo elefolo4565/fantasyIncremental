@@ -124,7 +124,7 @@ func _ready() -> void:
 	_player.hurt.connect(_on_player_hurt)
 	_player.died.connect(_on_player_died)
 	_world.add_child(_player)
-	_player.set_body_scale(Progress.unit_scale)
+	_player.set_body_scale(_player_scale())
 	_ring = RING_SCENE.instantiate() as SpiritRing
 	_player.add_child(_ring)
 	_ring.level = mini(roundi(Stats.effect(&"ring_start", Progress.levels)), Balance.get_int("ring_max_level"))
@@ -254,12 +254,17 @@ func _set_tuning(on: bool) -> void:
 
 func _on_scale_changed(value: float) -> void:
 	Progress.unit_scale = value
-	_player.set_body_scale(value)
+	_player.set_body_scale(_player_scale())
 	for child in _world.get_children():
 		var target := child as Breakable
 		if target != null:
 			target.scale = Vector2.ONE * value
 	_refresh_size_label()
+
+
+## プレイヤーは敵より小さめにする（参考: Astro Prospector の自機と岩の比）。
+func _player_scale() -> float:
+	return Progress.unit_scale * Balance.get_float("player_size_rate")
 
 
 func _refresh_size_label() -> void:
