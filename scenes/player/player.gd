@@ -1,6 +1,7 @@
 class_name Player
 extends CharacterBody2D
 ## プレイヤー。スティックかキーボードで動き、近くの壊せる物へ魔法弾を自動で撃つ。
+## 魔導樹の Twin Bolt で1度に撃つ数が増え、Focus で数発ごとに強い1発になる。
 
 const BOLT_SCENE := preload("res://scenes/bolt/bolt.tscn")
 const RADIUS := 20.0
@@ -9,6 +10,7 @@ const COLOR := Color(0.95, 0.85, 0.4)
 var stick: VirtualStick
 
 var _fire_cooldown := 0.0
+var _shot_count := 0
 
 
 func _physics_process(delta: float) -> void:
@@ -19,9 +21,10 @@ func _physics_process(delta: float) -> void:
 
 	_fire_cooldown -= delta
 	if _fire_cooldown <= 0.0:
-		var target := _find_target()
-		if target != null:
-			_fire_at(target)
+		var bolt_count := 1 + roundi(Stats.effect(&"twin", Progress.levels))
+		var targets := _find_targets(bolt_count)
+		if not targets.is_empty():
+			_fire_volley(targets, bolt_count)
 			_fire_cooldown = Balance.get_float("fire_interval")
 
 
@@ -41,22 +44,33 @@ func _read_move_input() -> Vector2:
 	return dir.limit_length(1.0)
 
 
-func _find_target() -> Node2D:
-	var best: Node2D = null
-	var best_distance := Balance.get_float("fire_range")
-	for node in get_tree().get_nodes_in_group(Rock.GROUP):
-		var candidate := node as Node2D
-		if candidate == null:
-			continue
-		var distance := global_position.distance_to(candidate.global_position)
-		if distance < best_distance:
-			best_distance = distance
-			best = candidate
-	return best
+## 射程内の壊せる物を近い順に最大 count 個返す。
+func _find_targets(count: int) -> Array[Breakable]:
+	var in_range: Array[Breakable] = []
+	var fire_range := Balance.get_float("fire_range")
+	for node in get_tree().get_nodes_in_group(Breakable.GROUP):
+		var candidate := node as Breakable
+		if candidate != null and global_position.distance_to(candidate.global_position) < fire_range:
+			in_range.append(candidate)
+	in_range.sort_custom(func(a: Breakable, b: Breakable) -> bool:
+		return global_position.distance_squared_to(a.global_position) \
+				< global_position.distance_squared_to(b.global_position))
+	return in_range.slice(0, count)
 
 
-func _fire_at(target: Node2D) -> void:
-	var bolt := BOLT_SCENE.instantiate() as Bolt
-	bolt.direction = global_position.direction_to(target.global_position)
-	get_parent().add_child(bolt)
-	bolt.global_position = global_position
+## 狙える相手が足りない分は、一番近い相手の左右にずらして撃つ。
+func _fire_volley(targets: Array[Breakable], bolt_count: int) -> void:
+	var spread := deg_to_rad(Balance.get_float("twin_spread"))
+	var focus_every := maxi(Balance.get_int("focus_every"), 1)
+	var has_focus := Stats.effect(&"focus", Progress.levels) > 0.0
+	for i in bolt_count:
+		var dir := global_position.direction_to(targets[mini(i, targets.size() - 1)].global_position)
+		if i >= targets.size():
+			var extra := i - targets.size() + 1
+			dir = dir.rotated(spread * ceilf(extra / 2.0) * (1.0 if extra % 2 == 1 else -1.0))
+		_shot_count += 1
+		var bolt := BOLT_SCENE.instantiate() as Bolt
+		bolt.direction = dir
+		bolt.focused = has_focus and _shot_count % focus_every == 0
+		get_parent().add_child(bolt)
+		bolt.global_position = global_position

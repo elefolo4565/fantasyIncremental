@@ -17,6 +17,8 @@ config/features=PackedStringArray("4.5", "GL Compatibility")
 [autoload]
 
 Balance="*res://scripts/autoload/balance.gd"
+Progress="*res://scripts/autoload/progress.gd"
+Sfx="*res://scripts/autoload/sfx.gd"
 
 [display]
 
