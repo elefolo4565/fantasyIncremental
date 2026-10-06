@@ -51,6 +51,16 @@ func respawn_time() -> float:
 	return 3.0
 
 
+## 中心から体力バーの下端までの高さ。
+func bar_lift() -> float:
+	return radius() + BAR_GAP
+
+
+## 壊れたあと湧き直すか。ボスは湧き直さない。
+func respawns() -> bool:
+	return true
+
+
 func is_alive() -> bool:
 	return hp > 0
 
@@ -81,6 +91,11 @@ func _on_hit() -> void:
 	pass
 
 
+## 子クラスで上書きできる。_draw_body で描いた絵を何倍にして見せるか。
+func _body_scale() -> float:
+	return 1.0
+
+
 ## 子クラスで上書きする。本体の絵を描く。flash は 0〜1。
 func _draw_body(_flash_amount: float) -> void:
 	pass
@@ -92,7 +107,8 @@ func _break() -> void:
 	_shape.set_deferred("disabled", true)
 	Sfx.play(&"break", 0.12, -4.0)
 	broken.emit(self)
-	get_tree().create_timer(respawn_time()).timeout.connect(_respawn)
+	if respawns():
+		get_tree().create_timer(respawn_time()).timeout.connect(_respawn)
 
 
 func _respawn() -> void:
@@ -107,13 +123,14 @@ func _respawn() -> void:
 func _draw() -> void:
 	var r := radius()
 	var pop := _flash / FLASH_TIME
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0 + pop * POP_SCALE.x, 1.0 - pop * POP_SCALE.y))
+	draw_set_transform(Vector2.ZERO, 0.0,
+			Vector2(1.0 + pop * POP_SCALE.x, 1.0 - pop * POP_SCALE.y) * _body_scale())
 	_draw_body(pop)
 	draw_set_transform(Vector2.ZERO)
 	# 減っているときだけ、頭の上に残りの体力をバーで出す（数字は出さない）
 	if is_undamaged():
 		return
-	var bar := Rect2(-r * 0.8, -r - BAR_GAP - BAR_HEIGHT, r * 1.6, BAR_HEIGHT)
+	var bar := Rect2(-r * 0.8, -bar_lift() - BAR_HEIGHT, r * 1.6, BAR_HEIGHT)
 	draw_rect(bar.grow(3.0), Toon.OUTLINE)
 	draw_rect(bar, BAR_BACK)
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * float(hp) / maxi(max_hp, 1), bar.size.y)), _bar_color())

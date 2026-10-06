@@ -1,15 +1,17 @@
 class_name Run
 extends Node2D
-## 1回のラン（1ステージ）。物を置いて制限時間を数え、目標の数だけ壊せばクリア（次のステージが解放される）。
-## クリアしても時間切れまでは素材を集め続けられる。
-## 壊れた物のごほうび・砕裂（Shatter）・残響（Echo）・精霊の輪のレベルアップもここで扱う。
+## 1回のラン（1ステージ）。物を置いて制限時間を数え、決まった数を倒すとボスが出る。ボスを倒せばクリア（次のステージが解放される）。
+## 倒した物は素材（Pickup）を落とし、プレイヤーが近づいて拾ったぶんだけ手に入る。クリアしたときは落ちている素材も全部手に入る。
+## 砕裂（Shatter）・残響（Echo）・精霊の輪のレベルアップもここで扱う。
 ## モンスター（Slime）は稼ぎの元であり脅威でもある。触れると体力が減り、体力が 0 になるとそこでランが終わる。
-## 時間切れかやられたら結果を表示し、戻るボタンで finished を出す。
+## クリア・時間切れ・やられたら結果を表示し、戻るボタンで finished を出す。
 
 signal finished
 
 const PLAYER_SCENE := preload("res://scenes/player/player.tscn")
 const SLIME_SCENE := preload("res://scenes/slime/slime.tscn")
+const BOSS_SCENE := preload("res://scenes/boss/boss.tscn")
+const PICKUP_SCENE := preload("res://scenes/pickup/pickup.tscn")
 const OAK_SCENE := preload("res://scenes/oak/oak.tscn")
 const BOLT_SCENE := preload("res://scenes/bolt/bolt.tscn")
 const RING_SCENE := preload("res://scenes/spirit_ring/spirit_ring.tscn")
@@ -32,6 +34,8 @@ const SHAKE_DECAY := 30.0
 const SHAKE_ON_BREAK := 5.0
 const SHAKE_ON_HURT := 10.0
 const SLIME_DEBRIS := Color(0.3, 0.78, 1.0)
+const BOSS_DEBRIS := Boss.KING_COLOR
+const BOSS_SPAWN_TRIES := 30
 const OAK_DEBRIS := Color(0.4, 0.7, 0.35)
 const GEM_COLOR := Color(1.0, 0.55, 0.95)
 const HURT_COLOR := Color(1.0, 0.4, 0.35)
@@ -56,6 +60,9 @@ var _over := false
 var _defeated := false
 var _cleared := false
 var _unlocked := false
+var _boss: Boss
+var _boss_called := false
+var _last_contact_damage := 0
 var _player: Player
 var _ring: SpiritRing
 var _decor: Array[Vector2] = []
@@ -129,7 +136,7 @@ func _process(delta: float) -> void:
 func _on_player_hurt() -> void:
 	Sfx.play(&"hurt")
 	_shake = SHAKE_ON_HURT
-	_popup(_player.global_position + Vector2(0, -30), "-%d" % Balance.get_int("slime_contact_damage"), HURT_COLOR, 30)
+	_popup(_player.global_position + Vector2(0, -30), "-%d" % _last_contact_damage, HURT_COLOR, 30)
 	_update_hud()
 
 
@@ -142,7 +149,8 @@ func _on_player_died() -> void:
 
 func _on_slime_touched(slime: Slime) -> void:
 	if not _over:
-		_player.take_damage(Balance.get_int("slime_contact_damage"), slime.global_position)
+		_last_contact_damage = slime.contact_damage
+		_player.take_damage(slime.contact_damage, slime.global_position)
 
 
 func _draw() -> void:
@@ -179,8 +187,35 @@ func _spawn(scene: PackedScene, base_hp: int, reward: int, area: Vector2, taken:
 	if slime != null:
 		slime.target = _player
 		slime.speed = _stage.slime_speed
+		slime.contact_damage = Balance.get_int("slime_contact_damage")
 		slime.touched_player.connect(_on_slime_touched)
 	_world.add_child(target)
+
+
+## プレイヤーからなるべく離れた場所にボスを出す。
+func _spawn_boss() -> void:
+	var area := get_viewport_rect().size
+	var spot := Vector2.ZERO
+	var best_distance := -1.0
+	for _i in BOSS_SPAWN_TRIES:
+		var candidate := Vector2(randf_range(EDGE_MARGIN, area.x - EDGE_MARGIN), randf_range(TOP_MARGIN, area.y - EDGE_MARGIN))
+		var distance := candidate.distance_to(_player.position)
+		if distance > best_distance:
+			spot = candidate
+			best_distance = distance
+	_boss = BOSS_SCENE.instantiate() as Boss
+	_boss.base_hp = _stage.boss_hp
+	_boss.reward = _stage.boss_gem
+	_boss.position = spot
+	_boss.target = _player
+	_boss.speed = _stage.boss_speed
+	_boss.contact_damage = Balance.get_int("boss_contact_damage")
+	_boss.broken.connect(_on_broken)
+	_boss.damaged.connect(_on_damaged)
+	_boss.touched_player.connect(_on_slime_touched)
+	_world.add_child(_boss)
+	Sfx.play(&"ring")
+	_show_banner("ボス出現！")
 
 
 func _find_free_spot(area: Vector2, taken: Array[Vector2]) -> Vector2:
@@ -203,7 +238,7 @@ func _find_free_spot(area: Vector2, taken: Array[Vector2]) -> Vector2:
 func _on_damaged(target: Breakable, amount: int) -> void:
 	if _over or amount <= 0:
 		return
-	var above := target.radius() + Breakable.BAR_GAP + Breakable.BAR_HEIGHT + 8.0
+	var above := target.bar_lift() + Breakable.BAR_HEIGHT + 8.0
 	var at := target.global_position + Vector2(randf_range(-DAMAGE_JITTER, DAMAGE_JITTER), -above)
 	_popup(at, str(amount), DAMAGE_COLOR, DAMAGE_SIZE, DAMAGE_LIFETIME)
 
@@ -212,41 +247,88 @@ func _on_broken(target: Breakable) -> void:
 	if _over:
 		return
 	var at := target.global_position
-	_broken_count += 1
-	_shake = maxf(_shake, SHAKE_ON_BREAK)
+	var is_boss := target == _boss
+	if not is_boss:
+		_broken_count += 1
+	_shake = maxf(_shake, SHAKE_ON_BREAK * (2.0 if is_boss else 1.0))
 	var is_slime := target.kind() == Stats.SLIME
-	if is_slime:
-		_gained_gem += target.reward
-		Progress.add_materials(target.reward, 0)
-	else:
-		_gained_wood += target.reward
-		Progress.add_materials(0, target.reward)
 
 	var shatter := roundi(Stats.effect(&"shatter", Progress.levels))
 	var debris := DEBRIS_SCENE.instantiate() as Debris
-	debris.color = SLIME_DEBRIS if is_slime else OAK_DEBRIS
+	debris.color = BOSS_DEBRIS if is_boss else (SLIME_DEBRIS if is_slime else OAK_DEBRIS)
 	debris.wave_radius = Balance.get_float("shatter_radius") if shatter > 0 else 0.0
 	debris.position = at
 	_world.add_child(debris)
-	_popup(at, "+%d" % target.reward, GEM_COLOR if is_slime else WOOD_COLOR)
 
+	if is_boss:
+		_add_materials(Pickup.GEM, target.reward, at)
+		_on_boss_defeated()
+		return
+	_drop(Pickup.GEM if is_slime else Pickup.WOOD, target.reward, at)
 	if shatter > 0:
 		get_tree().create_timer(SHATTER_DELAY).timeout.connect(_shatter.bind(at, shatter))
 	for _i in roundi(Stats.effect(&"echo", Progress.levels)):
 		_fire_echo.call_deferred(at)
 	_advance_ring()
 
-	if not _cleared and _broken_count >= _stage.goal:
-		_on_goal_reached()
+	if not _boss_called and _broken_count >= _stage.boss_after:
+		_boss_called = true
+		_spawn_boss.call_deferred()
 
 
-func _on_goal_reached() -> void:
+## 倒した場所に素材を落とす。拾ったときに _on_collected で手に入る。
+func _drop(kind: StringName, amount: int, at: Vector2) -> void:
+	if amount <= 0:
+		return
+	var pickup := PICKUP_SCENE.instantiate() as Pickup
+	pickup.kind = kind
+	pickup.amount = amount
+	pickup.target = _player
+	pickup.position = at
+	pickup.collected.connect(_on_collected)
+	_world.add_child.call_deferred(pickup)
+
+
+func _on_collected(pickup: Pickup) -> void:
+	if _over:
+		return
+	Sfx.play(&"click", 0.1, -8.0)
+	_add_materials(pickup.kind, pickup.amount, _player.global_position + Vector2(0, -40))
+
+
+func _add_materials(kind: StringName, amount: int, at: Vector2) -> void:
+	if kind == Pickup.GEM:
+		_gained_gem += amount
+		Progress.add_materials(amount, 0)
+	else:
+		_gained_wood += amount
+		Progress.add_materials(0, amount)
+	_popup(at, "+%d" % amount, GEM_COLOR if kind == Pickup.GEM else WOOD_COLOR)
+
+
+## 地面に落ちたままの素材。
+func _lying_pickups() -> Array[Pickup]:
+	var result: Array[Pickup] = []
+	for child in _world.get_children():
+		var pickup := child as Pickup
+		if pickup != null and not pickup.is_queued_for_deletion():
+			result.append(pickup)
+	return result
+
+
+## ボスを倒したらクリア。落ちている素材は全部手に入れて、ランを終える。
+func _on_boss_defeated() -> void:
 	_cleared = true
 	_unlocked = Progress.clear_stage(stage_index)
+	for pickup in _lying_pickups():
+		_add_materials(pickup.kind, pickup.amount, pickup.global_position)
+		pickup.queue_free()
 	Sfx.play(&"clear")
-	_banner.text = "ステージクリア！"
-	if _unlocked:
-		_banner.text += "\n%s が開いた" % Progress.stages[Progress.unlocked_stage].name
+	_finish()
+
+
+func _show_banner(text: String) -> void:
+	_banner.text = text
 	_banner.visible = true
 	_banner.modulate.a = 1.0
 	_banner.pivot_offset = _banner.size * 0.5
@@ -322,32 +404,40 @@ func _finish() -> void:
 	_stick.visible = false
 	_banner.visible = false
 	Progress.save()
-	Sfx.play(&"timeup")
-	if _defeated:
-		_result_title.text = "やられた…"
+	if not _cleared:
+		Sfx.play(&"timeup")
+	if _cleared:
+		_result_title.text = "ステージクリア！"
 	else:
-		_result_title.text = "ステージクリア！" if _cleared else "時間切れ"
+		_result_title.text = "やられた…" if _defeated else "時間切れ"
 	var lines := PackedStringArray()
-	lines.append("倒した数: %d / %d" % [_broken_count, _stage.goal])
+	lines.append("倒した数: %d" % _broken_count)
 	var gained := "宝石 +%d" % _gained_gem
 	if _gained_wood > 0 or _stage.oak_count > 0:
 		gained += "　木材 +%d" % _gained_wood
 	lines.append(gained)
+	var missed := 0
+	for pickup in _lying_pickups():
+		missed += pickup.amount
+	if missed > 0:
+		lines.append("拾えなかった素材: %d" % missed)
 	if _unlocked:
 		lines.append("新しいステージ: %s" % Progress.stages[Progress.unlocked_stage].name)
-	elif _cleared and _defeated:
-		lines.append("やられる前にクリアできた")
-	elif not _cleared:
-		lines.append("%d体倒せばクリア" % _stage.goal)
-	elif stage_index == Progress.stages.size() - 1:
+	elif _cleared and stage_index == Progress.stages.size() - 1:
 		lines.append("試作の最後のステージをクリア！")
+	elif not _cleared and _boss != null:
+		lines.append("ボスを倒せばクリア")
+	elif not _cleared:
+		lines.append("%d体倒すとボスが出る" % _stage.boss_after)
 	_result_body.text = "\n".join(lines)
 	_result_panel.visible = true
 	_update_hud()
 
 
 func _update_hud() -> void:
-	var goal := "クリア" if _cleared else "目標 %d/%d" % [_broken_count, _stage.goal]
+	var goal := "クリア"
+	if not _cleared:
+		goal = "ボスを倒せ！" if _boss != null else "ボスまで %d/%d" % [_broken_count, _stage.boss_after]
 	_info_label.text = "%s　　残り%d秒　　HP %d/%d　　%s" % [_stage.name, ceili(_time_left), _player.hp, _player.max_hp, goal]
 	_material_label.text = "宝石 %d　木材 %d" % [Progress.gem, Progress.wood]
 	var max_level := Balance.get_int("ring_max_level")
