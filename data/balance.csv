@@ -1,0 +1,10 @@
+key,value,memo
+player_speed,260,プレイヤーの移動速度（ピクセル/秒）
+fire_interval,0.45,魔法弾を自動で撃つ間隔（秒）
+fire_range,420,自動攻撃が狙える距離（ピクセル）
+bolt_speed,720,魔法弾の飛ぶ速さ（ピクセル/秒）
+bolt_damage,1,魔法弾1発で減らす岩の耐久
+rock_hp,7,岩の耐久（bolt_damage=1なら7発で壊れる）
+rock_count,6,画面に置く岩の数
+rock_respawn_time,3,壊れた岩が復活するまでの時間（秒）
+rock_material,1,岩1個を壊したときに手に入る素材の数
