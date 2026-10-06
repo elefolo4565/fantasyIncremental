@@ -18,6 +18,8 @@ var unlocked_stage := 0
 var selected_stage := 0
 ## 敵・プレイヤーの大きさの倍率。戦闘画面のつまみで変えて試す（保存はしない）
 var unit_scale := 1.0
+## 設定: true ならタップした場所へ移動する（false なら仮想スティック）
+var tap_move := false
 
 var upgrades: Array[UpgradeDef] = []
 var stages: Array[StageDef] = []
@@ -92,6 +94,11 @@ func clear_stage(index: int) -> bool:
 	return false
 
 
+func set_tap_move(on: bool) -> void:
+	tap_move = on
+	_changed()
+
+
 func reset() -> void:
 	gem = 0
 	wood = 0
@@ -118,6 +125,7 @@ func save() -> void:
 	config.set_value("materials", "wood", wood)
 	config.set_value("stages", "unlocked", unlocked_stage)
 	config.set_value("stages", "selected", selected_stage)
+	config.set_value("options", "tap_move", tap_move)
 	for id in levels:
 		config.set_value("levels", String(id), levels[id])
 	var error := config.save(SAVE_PATH)
@@ -138,6 +146,7 @@ func _load_save() -> void:
 	wood = config.get_value("materials", "wood", 0)
 	unlocked_stage = clampi(config.get_value("stages", "unlocked", 0), 0, stages.size() - 1)
 	selected_stage = clampi(config.get_value("stages", "selected", 0), 0, unlocked_stage)
+	tap_move = bool(config.get_value("options", "tap_move", false))
 	if config.has_section("levels"):
 		for key in config.get_section_keys("levels"):
 			var def := upgrade(StringName(key))

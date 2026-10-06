@@ -119,6 +119,12 @@ func _draw() -> void:
 
 
 func _read_move_input() -> Vector2:
+	if stick != null and stick.tap_mode and stick.has_target:
+		var offset := stick.target - global_position
+		if offset.length() <= Balance.get_float("tap_arrive_distance"):
+			stick.clear_target()
+			return Vector2.ZERO
+		return offset.normalized()
 	if stick != null and stick.value != Vector2.ZERO:
 		return stick.value
 	var dir := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")

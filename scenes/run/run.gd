@@ -120,6 +120,8 @@ func _ready() -> void:
 	for _i in _stage.oak_count:
 		_spawn(OAK_SCENE, _stage.oak_hp, _stage.oak_wood, area, taken)
 	_build_size_tuner()
+	_stick.tap_mode = Progress.tap_move
+	_stick.blockers = [_size_button, _size_panel, _result_panel]
 	_update_hud()
 
 

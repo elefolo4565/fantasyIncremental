@@ -3,6 +3,7 @@ extends Control
 ## 魔導樹の画面。強化ノードを並べ、選んだノードの説明・費用と「何発で壊れるか」の変化を見せて買えるようにする。
 ## ステージを選んで START を押すと start_requested を出す。
 ## 魔導樹はピンチ（PC ではホイール）で拡大し、ドラッグで動かせる。
+## 左下のボタンで、ランでの移動をスティックとタップ移動で切り替える（設定は保存する）。
 
 signal start_requested(stage_index: int)
 
@@ -55,6 +56,7 @@ var _drag_distance := 0.0
 @onready var _stage_info: Label = $Side/StagePanel/Box/StageInfo
 @onready var _start_button: Button = $Side/StagePanel/Box/StartButton
 @onready var _reset_button: Button = $ResetButton
+@onready var _move_button: Button = $MoveButton
 
 
 func _ready() -> void:
@@ -76,6 +78,7 @@ func _ready() -> void:
 	_next_button.pressed.connect(_change_stage.bind(1))
 	_start_button.pressed.connect(_on_start_pressed)
 	_reset_button.pressed.connect(_on_reset_pressed)
+	_move_button.pressed.connect(_on_move_pressed)
 	Progress.changed.connect(_refresh)
 	resized.connect(_layout)
 	_nodes.draw.connect(_draw_links)
@@ -95,6 +98,7 @@ func _apply_styles() -> void:
 	UiStyle.button(_prev_button, UiStyle.BLUE)
 	UiStyle.button(_next_button, UiStyle.BLUE)
 	UiStyle.button(_reset_button, Color(0.85, 0.3, 0.3))
+	UiStyle.button(_move_button, UiStyle.BLUE)
 	for panel: PanelContainer in [$Side/Detail, $Side/StagePanel]:
 		panel.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.PANEL, 16, 4, 6))
 	for label: Label in [$Title, _material_label, _name_label, _level_label, _desc_label, _cost_label,
@@ -251,6 +255,7 @@ func _refresh() -> void:
 		button.add_theme_constant_override("outline_size", 6 if color != LOCKED_COLOR else 0)
 	_refresh_detail()
 	_refresh_stage()
+	_move_button.text = "移動: タップ" if Progress.tap_move else "移動: スティック"
 	_nodes.queue_redraw()
 
 
@@ -401,6 +406,11 @@ func _on_start_pressed() -> void:
 	Sfx.play(&"click")
 	Progress.save()
 	start_requested.emit(Progress.selected_stage)
+
+
+func _on_move_pressed() -> void:
+	Sfx.play(&"click")
+	Progress.set_tap_move(not Progress.tap_move)
 
 
 func _on_reset_pressed() -> void:
