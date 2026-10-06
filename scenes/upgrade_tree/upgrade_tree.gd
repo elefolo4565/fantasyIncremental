@@ -286,24 +286,18 @@ func _refresh_detail() -> void:
 		if cost.y > 0:
 			parts.append("木材 %d" % cost.y)
 		_cost_label.text = "必要: " + "　".join(parts)
-	_preview_label.text = "\n".join(_hit_lines(def))
+	_preview_label.text = "\n".join(_change_lines(def))
 	_buy_button.disabled = not Progress.can_buy(def)
 
 
-## 選んだステージで「この強化を買うと何発で壊れるようになるか」を並べる。
-func _hit_lines(def: UpgradeDef) -> PackedStringArray:
+## この強化を買うと変わる数値（活動時間・攻撃間隔・射程）を並べる。
+## 「何発で倒せるか」は出さない（ユーザー指示 2026-10-06）。
+func _change_lines(def: UpgradeDef) -> PackedStringArray:
 	var lines := PackedStringArray()
 	if Progress.is_maxed(def):
 		return lines
 	var now := Progress.levels
 	var after := Stats.with_level(now, def.id, 1)
-	for target in _stage_targets():
-		var before_hits := Stats.hits_to_break(target[0], target[2], now)
-		var after_hits := Stats.hits_to_break(target[0], target[2], after)
-		if before_hits != after_hits:
-			lines.append("%s: %d発 → %d発" % [target[1], before_hits, after_hits])
-	if not lines.is_empty():
-		lines.insert(0, "%sでは:" % Progress.stages[Progress.selected_stage].name)
 	var stats_before := _stat_texts(now)
 	var stats_after := _stat_texts(after)
 	for label in stats_before:
@@ -312,7 +306,7 @@ func _hit_lines(def: UpgradeDef) -> PackedStringArray:
 	return lines
 
 
-## 発数以外で強化によって変わる数値（活動時間・攻撃間隔・射程）を表示用の文字にする。
+## 強化によって変わる数値（活動時間・攻撃間隔・射程）を表示用の文字にする。
 func _stat_texts(levels: Dictionary) -> Dictionary:
 	return {
 		"活動時間": "%d秒" % roundi(Stats.run_time(levels)),
@@ -357,9 +351,6 @@ func _on_buy_pressed() -> void:
 	var def := _selected
 	if def == null:
 		return
-	var before: Array[int] = []
-	for target in _stage_targets():
-		before.append(Stats.hits_to_break(target[0], target[2], Progress.levels))
 	var stats_before := _stat_texts(Progress.levels)
 	if not Progress.buy(def):
 		Sfx.play(&"deny")
@@ -370,12 +361,6 @@ func _on_buy_pressed() -> void:
 	for label: String in stats_before:
 		if stats_before[label] != stats_after[label]:
 			text = "%s %s → %s！" % [label, stats_before[label], stats_after[label]]
-	var targets := _stage_targets()
-	for i in targets.size():
-		var after := Stats.hits_to_break(targets[i][0], targets[i][2], Progress.levels)
-		if after != before[i]:
-			text = "%s %d発 → %d発！" % [targets[i][1], before[i], after]
-			break
 	var button: Button = _buttons[def.id]
 	_pop(text, _node_center(def) + Vector2(0, -NODE_SIZE.y * 0.5))
 	var tween := button.create_tween()
