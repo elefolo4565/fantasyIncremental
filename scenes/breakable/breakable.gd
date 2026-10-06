@@ -1,9 +1,11 @@
 class_name Breakable
 extends CharacterBody2D
-## 壊せる物の共通部分。耐久・被弾・破壊・復活と、「あと何発で壊れるか」の表示を受け持つ。
+## 壊せる物の共通部分。耐久・被弾・破壊・復活と、頭の上の体力バーを受け持つ。
+## 体力バーは減っているときだけ出し、数字は出さない（与えたダメージは damaged を受けた側が出す）。
 ## 種類ごとの見た目や性質は子クラス（Slime, Oak）で決める。
 
 signal broken(target: Breakable)
+signal damaged(target: Breakable, amount: int)
 
 const GROUP := &"breakable"
 const FLASH_COLOR := Color(1.0, 0.95, 0.8)
@@ -12,6 +14,8 @@ const BAR_COLOR := Color(1.0, 0.82, 0.2)
 const BAR_BACK := Color(0.25, 0.2, 0.3)
 const OUTLINE_COLOR := Toon.OUTLINE
 const POP_SCALE := Vector2(0.18, 0.12)
+const BAR_HEIGHT := 10.0
+const BAR_GAP := 14.0
 
 ## 生成する側が add_child の前に入れる
 var base_hp := 1
@@ -55,18 +59,15 @@ func is_undamaged() -> bool:
 	return hp >= max_hp
 
 
-## 普通の魔法弾であと何発で壊れるか。
-func hits_left() -> int:
-	return Stats.hits_from(kind(), hp, is_undamaged(), Progress.levels)
-
-
 func take_hit(damage: int) -> void:
 	if hp <= 0:
 		return
+	var before := hp
 	hp -= damage
 	if hp <= Stats.finish_threshold(Progress.levels):
 		hp = 0
 	_flash = FLASH_TIME
+	damaged.emit(self, before - hp)
 	_on_hit()
 	queue_redraw()
 	if hp <= 0:
@@ -109,12 +110,13 @@ func _draw() -> void:
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0 + pop * POP_SCALE.x, 1.0 - pop * POP_SCALE.y))
 	_draw_body(pop)
 	draw_set_transform(Vector2.ZERO)
-	# 頭の上に「あと何発で倒せるか」を、耐久のバーに重ねて出す（ブロスタの体力表示ふう）
-	var bar := Rect2(-r * 0.85, -r - 34.0, r * 1.7, 24.0)
+	# 減っているときだけ、頭の上に残りの体力をバーで出す（数字は出さない）
+	if is_undamaged():
+		return
+	var bar := Rect2(-r * 0.8, -r - BAR_GAP - BAR_HEIGHT, r * 1.6, BAR_HEIGHT)
 	draw_rect(bar.grow(3.0), Toon.OUTLINE)
 	draw_rect(bar, BAR_BACK)
 	draw_rect(Rect2(bar.position, Vector2(bar.size.x * float(hp) / maxi(max_hp, 1), bar.size.y)), _bar_color())
-	Toon.label(self, Vector2(0, bar.end.y - 3.0), str(hits_left()), 24, Color.WHITE, r * 2.0)
 
 
 ## 子クラスで上書きできる。耐久のバーの色。

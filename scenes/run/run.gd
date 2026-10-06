@@ -37,6 +37,11 @@ const GEM_COLOR := Color(1.0, 0.55, 0.95)
 const HURT_COLOR := Color(1.0, 0.4, 0.35)
 const WOOD_COLOR := Color(0.95, 0.75, 0.45)
 const DECOR_COUNT := 60
+const DAMAGE_COLOR := Color(1, 1, 1)
+const DAMAGE_SIZE := 24
+## 与えたダメージの数字を出しておく時間（見た目だけ、秒）
+const DAMAGE_LIFETIME := 0.45
+const DAMAGE_JITTER := 14.0
 
 ## 生成する側が add_child の前に入れる
 var stage_index := 0
@@ -169,6 +174,7 @@ func _spawn(scene: PackedScene, base_hp: int, reward: int, area: Vector2, taken:
 	target.position = _find_free_spot(area, taken)
 	taken.append(target.position)
 	target.broken.connect(_on_broken)
+	target.damaged.connect(_on_damaged)
 	var slime := target as Slime
 	if slime != null:
 		slime.target = _player
@@ -191,6 +197,15 @@ func _find_free_spot(area: Vector2, taken: Array[Vector2]) -> Vector2:
 		if ok:
 			return spot
 	return spot
+
+
+## 与えたダメージを、当たった物の頭の上に短く出す。
+func _on_damaged(target: Breakable, amount: int) -> void:
+	if _over or amount <= 0:
+		return
+	var above := target.radius() + Breakable.BAR_GAP + Breakable.BAR_HEIGHT + 8.0
+	var at := target.global_position + Vector2(randf_range(-DAMAGE_JITTER, DAMAGE_JITTER), -above)
+	_popup(at, str(amount), DAMAGE_COLOR, DAMAGE_SIZE, DAMAGE_LIFETIME)
 
 
 func _on_broken(target: Breakable) -> void:
@@ -291,11 +306,12 @@ func _advance_ring() -> void:
 				target.take_hit(burst)
 
 
-func _popup(at: Vector2, text: String, color: Color, size := 26) -> void:
+func _popup(at: Vector2, text: String, color: Color, size := 26, lifetime := 0.8) -> void:
 	var popup := POPUP_SCENE.instantiate() as PopupText
 	popup.text = text
 	popup.color = color
 	popup.font_size = size
+	popup.lifetime = lifetime
 	popup.position = at
 	_world.add_child(popup)
 
