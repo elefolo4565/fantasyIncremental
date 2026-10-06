@@ -4,9 +4,10 @@ extends Area2D
 ## 魔導樹の Pierce で貫通し、Ricochet で最後の1発のあと別の物へ跳ね返る。
 
 const RADIUS := 7.0
-const COLOR := Color(0.55, 0.85, 1.0)
-const FOCUS_COLOR := Color(1.0, 0.55, 0.9)
+const COLOR := Color(0.45, 0.95, 1.0)
+const FOCUS_COLOR := Color(1.0, 0.45, 0.85)
 const FOCUS_SCALE := 1.7
+const TRAIL_LENGTH := 26.0
 
 var direction := Vector2.RIGHT
 ## 集中（Focus）の強い1発か
@@ -36,8 +37,13 @@ func _physics_process(delta: float) -> void:
 
 
 func _draw() -> void:
-	draw_circle(Vector2.ZERO, RADIUS, FOCUS_COLOR if focused else COLOR)
-	draw_circle(Vector2.ZERO, RADIUS * 0.5, Color.WHITE)
+	var color := FOCUS_COLOR if focused else COLOR
+	var tail := -direction * TRAIL_LENGTH
+	draw_line(tail, Vector2.ZERO, Color(color, 0.0), RADIUS * 1.6)
+	draw_line(tail * 0.6, Vector2.ZERO, Color(color, 0.5), RADIUS * 1.6)
+	draw_circle(Vector2.ZERO, RADIUS * 1.8, Color(color, 0.3))
+	Toon.blob(self, Vector2.ZERO, Vector2.ONE * RADIUS, color, 3.0)
+	draw_circle(Vector2(-2, -2), RADIUS * 0.45, Color.WHITE)
 
 
 func _on_body_entered(body: Node2D) -> void:

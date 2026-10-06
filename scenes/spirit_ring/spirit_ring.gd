@@ -47,8 +47,9 @@ func _draw() -> void:
 	draw_arc(Vector2.ZERO, orbit, 0.0, TAU, 48, TRAIL_COLOR, 6.0)
 	for i in level:
 		var at := _orb_offset(i)
-		draw_circle(at, orb_radius, ORB_COLOR)
-		draw_circle(at, orb_radius * 0.45, ORB_CORE)
+		draw_circle(at, orb_radius * 1.7, Color(ORB_COLOR, 0.25))
+		Toon.blob(self, at, Vector2.ONE * orb_radius, ORB_COLOR, 3.0)
+		Toon.highlight(self, at + Vector2(-4, -5), Vector2(5, 4))
 
 
 func _orb_offset(index: int) -> Vector2:
