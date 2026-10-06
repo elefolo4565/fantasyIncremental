@@ -1,9 +1,23 @@
 extends Node
-## 仮の効果音。起動時に簡単な波形を合成して鳴らす（本番の素材が決まったら差し替える）。
+## 効果音。魔王魂の効果音（出どころとクレジットは assets/audio/README.md）を鳴らす。
 ## オン/オフは Progress.se_on（保存する）。
 ## 使い方: Sfx.play(&"hit")
 
-const MIX_RATE := 22050
+## オートロードは素材の取り込みより先に読まれるので、preload ではなく起動後に load する
+const SOUNDS := {
+	&"boss_break": "res://assets/audio/se/se_boss_break_maoudamashii_battle_explosion05.ogg",
+	&"break": "res://assets/audio/se/se_break_maoudamashii_battle_explosion06.ogg",
+	&"buy": "res://assets/audio/se/se_buy_maoudamashii_system03.ogg",
+	&"clear": "res://assets/audio/se/se_clear_maoudamashii_jingle04.ogg",
+	&"click": "res://assets/audio/se/se_click_maoudamashii_system24.ogg",
+	&"deny": "res://assets/audio/se/se_deny_maoudamashii_system25.ogg",
+	&"hit": "res://assets/audio/se/se_hit_maoudamashii_battle14.ogg",
+	&"hurt": "res://assets/audio/se/se_hurt_maoudamashii_battle12.ogg",
+	&"pickup": "res://assets/audio/se/se_pickup_maoudamashii_system18.ogg",
+	&"ring": "res://assets/audio/se/se_ring_maoudamashii_magic_ice02.ogg",
+	&"shot": "res://assets/audio/se/se_shot_maoudamashii_magical19.ogg",
+	&"timeup": "res://assets/audio/se/se_timeup_maoudamashii_jingle06.ogg",
+}
 const VOICES := 12
 
 var _streams: Dictionary = {}
@@ -16,20 +30,8 @@ func _ready() -> void:
 		var player := AudioStreamPlayer.new()
 		add_child(player)
 		_players.append(player)
-	# [開始周波数, 終了周波数, 長さ(秒)] を並べた音符の列と、波形・ノイズの混ぜ具合
-	_streams[&"hit"] = _synth([[1100.0, 620.0, 0.045]], 0.6, 0.15, 0.35)
-	_streams[&"break"] = _synth([[220.0, 70.0, 0.2]], 0.3, 0.7, 0.6)
-	# 強化の購入は、力をためて一気に上がる音（下から駆け上がる唸りのあと、明るい和音で決める）
-	_streams[&"buy"] = _synth([[180.0, 900.0, 0.32], [523.0, 523.0, 0.05], [784.0, 784.0, 0.05], [1047.0, 1047.0, 0.05], [1568.0, 1568.0, 0.3]], 0.45, 0.05, 0.5)
-	_streams[&"deny"] = _synth([[160.0, 120.0, 0.14]], 1.0, 0.1, 0.35)
-	_streams[&"clear"] = _synth([[392.0, 392.0, 0.09], [523.0, 523.0, 0.09], [659.0, 659.0, 0.09], [784.0, 784.0, 0.09], [1047.0, 1047.0, 0.3]], 0.25, 0.0, 0.5)
-	_streams[&"timeup"] = _synth([[440.0, 440.0, 0.12], [330.0, 330.0, 0.12], [220.0, 200.0, 0.25]], 0.4, 0.0, 0.45)
-	_streams[&"ring"] = _synth([[600.0, 1800.0, 0.28]], 0.0, 0.05, 0.45)
-	_streams[&"hurt"] = _synth([[300.0, 90.0, 0.18]], 0.7, 0.35, 0.6)
-	_streams[&"shot"] = _synth([[1500.0, 900.0, 0.06]], 0.0, 0.25, 0.4)
-	_streams[&"pickup"] = _synth([[1320.0, 1320.0, 0.04], [1760.0, 1980.0, 0.08]], 0.15, 0.0, 0.35)
-	_streams[&"boss_break"] = _synth([[160.0, 40.0, 0.7]], 0.4, 0.75, 0.9)
-	_streams[&"click"] = _synth([[700.0, 700.0, 0.03]], 0.5, 0.0, 0.3)
+	for sound: StringName in SOUNDS:
+		_streams[sound] = load(SOUNDS[sound])
 
 
 func play(sound: StringName, pitch_jitter := 0.0, volume_db := 0.0) -> void:
@@ -39,6 +41,9 @@ func play(sound: StringName, pitch_jitter := 0.0, volume_db := 0.0) -> void:
 	if stream == null:
 		push_warning("効果音がありません: %s" % sound)
 		return
+	# 音の出ない環境（CI のヘッドレス実行）では鳴らさない。鳴らすと終了時に音が解放されずエラーが出る
+	if AudioServer.get_driver_name() == "Dummy":
+		return
 	var player := _players[_next]
 	_next = (_next + 1) % _players.size()
 	player.stream = stream
@@ -47,30 +52,9 @@ func play(sound: StringName, pitch_jitter := 0.0, volume_db := 0.0) -> void:
 	player.play()
 
 
-## notes の各音符を順につなげた 16bit モノラルの音を作る。
-## square_mix: 矩形波の混ぜ具合（0 で正弦波）、noise_mix: ノイズの混ぜ具合、volume: 音量（0〜1）
-func _synth(notes: Array, square_mix: float, noise_mix: float, volume: float) -> AudioStreamWAV:
-	var data := PackedByteArray()
-	var phase := 0.0
-	for note: Array in notes:
-		var from: float = note[0]
-		var to: float = note[1]
-		var length: float = note[2]
-		var count := int(length * MIX_RATE)
-		var start := data.size()
-		data.resize(start + count * 2)
-		for i in count:
-			var t := float(i) / count
-			phase = fmod(phase + lerpf(from, to, t) / MIX_RATE, 1.0)
-			var sine := sin(phase * TAU)
-			var square := 1.0 if phase < 0.5 else -1.0
-			var tone := lerpf(sine, square, square_mix)
-			var sample := lerpf(tone, randf_range(-1.0, 1.0), noise_mix)
-			var envelope := minf(t * 20.0, 1.0) * pow(1.0 - t, 1.5)
-			data.encode_s16(start + i * 2, int(clampf(sample * envelope * volume, -1.0, 1.0) * 32767.0))
-	var stream := AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_16_BITS
-	stream.mix_rate = MIX_RATE
-	stream.stereo = false
-	stream.data = data
-	return stream
+func _exit_tree() -> void:
+	# 終了時に音を持ったままだと「resources still in use at exit」と出るので手放す
+	for player in _players:
+		player.stop()
+		player.stream = null
+	_streams.clear()
