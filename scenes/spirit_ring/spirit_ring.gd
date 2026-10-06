@@ -34,7 +34,7 @@ func _physics_process(delta: float) -> void:
 			var target := node as Breakable
 			if target == null or not target.is_alive() or _cooldowns.has(target.get_instance_id()):
 				continue
-			if orb.distance_to(target.global_position) <= orb_radius + target.radius():
+			if orb.distance_to(target.global_position) <= orb_radius + target.radius() * target.scale.x:
 				_cooldowns[target.get_instance_id()] = Balance.get_float("ring_hit_cooldown")
 				target.take_hit(damage)
 

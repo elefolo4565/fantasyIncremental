@@ -16,6 +16,8 @@ var levels: Dictionary = {}
 ## 遊べる一番先のステージ（stages の番号）
 var unlocked_stage := 0
 var selected_stage := 0
+## 敵・プレイヤーの大きさの倍率。戦闘画面のつまみで変えて試す（保存はしない）
+var unit_scale := 1.0
 
 var upgrades: Array[UpgradeDef] = []
 var stages: Array[StageDef] = []
@@ -25,6 +27,7 @@ var _saving := true
 
 
 func _ready() -> void:
+	unit_scale = Balance.get_float("unit_scale")
 	for row in Balance.load_table(UPGRADES_PATH):
 		var def := UpgradeDef.from_row(row)
 		upgrades.append(def)

@@ -52,7 +52,7 @@ func _physics_process(delta: float) -> void:
 		_wander = -_wander
 	queue_redraw()
 	if target != null and global_position.distance_to(target.global_position) \
-			<= radius() + Balance.get_float("slime_touch_reach"):
+			<= (radius() + Balance.get_float("slime_touch_reach")) * scale.x:
 		touched_player.emit(self)
 
 
