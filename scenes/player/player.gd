@@ -165,3 +165,4 @@ func _fire_volley(targets: Array[Breakable], bolt_count: int) -> void:
 		bolt.focused = has_focus and _shot_count % focus_every == 0
 		get_parent().add_child(bolt)
 		bolt.global_position = global_position
+	Sfx.play(&"shot", 0.1, -14.0)

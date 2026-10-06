@@ -382,6 +382,7 @@ func _on_broken(target: Breakable) -> void:
 	_world.add_child(debris)
 
 	if is_boss:
+		Sfx.play(&"boss_break")
 		_add_materials(Pickup.GEM, target.reward, at)
 		_on_boss_defeated()
 		return
@@ -413,7 +414,7 @@ func _drop(kind: StringName, amount: int, at: Vector2) -> void:
 func _on_collected(pickup: Pickup) -> void:
 	if _over:
 		return
-	Sfx.play(&"click", 0.1, -8.0)
+	Sfx.play(&"pickup", 0.06, -6.0)
 	_add_materials(pickup.kind, pickup.amount, _player.global_position + Vector2(0, -40))
 
 
