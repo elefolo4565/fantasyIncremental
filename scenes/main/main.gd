@@ -5,6 +5,7 @@ extends Node
 const TREE_SCENE := preload("res://scenes/upgrade_tree/upgrade_tree.tscn")
 const FONT := preload("res://assets/fonts/MPLUSRounded1c-ExtraBold-subset.ttf")
 const RUN_SCENE := preload("res://scenes/run/run.tscn")
+const ROTATE_HINT_SCENE := preload("res://scenes/rotate_hint/rotate_hint.tscn")
 
 var _screen: Node
 
@@ -14,6 +15,7 @@ func _ready() -> void:
 	# OS の日本語フォントで補われて見えてしまうが、Web では補われず文字化けする。
 	ThemeDB.get_default_theme().default_font = FONT
 	ThemeDB.fallback_font = FONT
+	add_child(ROTATE_HINT_SCENE.instantiate())
 	if OS.get_cmdline_user_args().has("--smoke-run"):
 		Progress.enable_smoke_mode()
 		_show_run(Progress.stages.size() - 1)
