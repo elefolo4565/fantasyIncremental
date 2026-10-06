@@ -10,7 +10,9 @@ var _screen: Node
 
 
 func _ready() -> void:
-	# _draw() で使う文字も日本語が出るように、同梱フォントを既定にする
+	# 同梱フォントを全体の既定にする。既定テーマの英字フォント（Open Sans）のままだと、PC では
+	# OS の日本語フォントで補われて見えてしまうが、Web では補われず文字化けする。
+	ThemeDB.get_default_theme().default_font = FONT
 	ThemeDB.fallback_font = FONT
 	if OS.get_cmdline_user_args().has("--smoke-run"):
 		Progress.enable_smoke_mode()
