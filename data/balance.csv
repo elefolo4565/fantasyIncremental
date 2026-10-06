@@ -36,3 +36,14 @@ unit_scale,0.5,敵・プレイヤーの見た目と当たり判定の大きさ�
 tap_arrive_distance,8,タップ移動で目的地にこの距離まで近づいたら止まる（ピクセル）
 bgm_volume_db,-10,BGMの音量（デシベル。0が元の大きさ、マイナスほど小さい）
 bgm_fade_time,0.4,曲を切り替えるとき前の曲を小さくしていく時間（秒）
+grass_player_speed_rate,0.55,草地の中でのプレイヤーの移動速度の倍率（1で遅くならない）
+grass_bolt_speed_rate,0.45,草地の中での魔法弾の速さの倍率（射程は遅くなる前の距離で数えるので、草地を通ると届く距離も縮む）
+grass_radius_min,55,草地1つの半径の最小（ピクセル。大きさの倍率は掛けない）
+grass_radius_max,90,草地1つの半径の最大（ピクセル）
+grass_scale,1,草地の数の倍率（stages.csv の grass に掛ける）。戦闘画面の「調整」つまみで試した値をここに入れる
+dasher_notice_range,260,突進スライムがプレイヤーに気づいて予備動作に入る距離（ピクセル）
+dasher_windup_time,0.7,突進スライムの予備動作の長さ（秒）。このあいだは止まって黄色く光り、突進の向きに線が出る
+dasher_aim_lock_time,0.25,予備動作の最後のこの秒数は向きを固定する（避ける余地。秒）
+dasher_dash_speed,720,突進の速さ（ピクセル/秒）
+dasher_dash_distance,320,1回の突進で進む距離（ピクセル）
+dasher_rest_time,1.2,突進のあと止まって休む時間（秒）

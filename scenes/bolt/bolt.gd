@@ -1,6 +1,7 @@
 class_name Bolt
 extends Area2D
 ## 魔法弾。まっすぐ飛び、当たった物の耐久を減らす。
+## 草地（Grass）の中では遅くなり、そのぶん射程を余計に使う（遅くなっても進む距離は遅くなる前の分だけ数える）。
 ## 魔導樹の Pierce で貫通し、Ricochet で最後の1発のあと別の物へ跳ね返る。
 
 const RADIUS := 7.0
@@ -30,7 +31,7 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	var step := Balance.get_float("bolt_speed") * delta
-	position += direction * step
+	position += direction * step * Grass.rate_at(get_tree(), global_position, Balance.get_float("grass_bolt_speed_rate"))
 	_travelled += step
 	if _travelled > Stats.fire_range(Progress.levels) * 1.5:
 		queue_free()
