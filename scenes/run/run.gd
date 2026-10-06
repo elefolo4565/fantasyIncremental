@@ -4,11 +4,13 @@ extends Node2D
 ## 倒した物は素材（Pickup）を落とし、プレイヤーが近づいて拾ったぶんだけ手に入る。クリアしたときは落ちている素材も全部手に入る。
 ## 砕裂（Shatter）・残響（Echo）・精霊の輪のレベルアップもここで扱う。
 ## モンスター（Slime）は稼ぎの元であり脅威でもある。触れると体力が減り、体力が 0 になるとそこでランが終わる。
-## クリア・時間切れ・やられたら結果を表示し、戻るボタンで finished を出す。
+## クリア・時間切れ・やられたら結果を表示し、戻るボタンで finished、「もう一度」で retry_requested を出す。
 ## 平原の2面からは草地（Grass）を置く。数は stages.csv の grass × Progress.grass_scale。
 ## 右上の「調整」から、キャラの大きさの倍率と草地の数の倍率をつまみで試せる（開いているあいだは時間が止まり、無敵で攻撃しない）。
 
 signal finished
+## 同じステージをすぐにもう一度遊ぶ
+signal retry_requested(stage_index: int)
 
 const PLAYER_SCENE := preload("res://scenes/player/player.tscn")
 const SLIME_SCENE := preload("res://scenes/slime/slime.tscn")
@@ -104,6 +106,7 @@ var _grass_layer: Node2D
 @onready var _result_title: Label = $HUD/ResultPanel/Box/Title
 @onready var _result_body: Label = $HUD/ResultPanel/Box/Body
 @onready var _back_button: Button = $HUD/ResultPanel/Box/BackButton
+@onready var _retry_button: Button = $HUD/ResultPanel/Box/RetryButton
 
 
 func _ready() -> void:
@@ -113,6 +116,7 @@ func _ready() -> void:
 	_apply_styles()
 	_banner.visible = false
 	_back_button.pressed.connect(_on_back_pressed)
+	_retry_button.pressed.connect(_on_retry_pressed)
 
 	var area := get_viewport_rect().size
 	for _i in DECOR_COUNT:
@@ -308,7 +312,8 @@ func _apply_grass() -> void:
 
 
 func _apply_styles() -> void:
-	UiStyle.button(_back_button, UiStyle.YELLOW)
+	UiStyle.button(_retry_button, UiStyle.YELLOW)
+	UiStyle.button(_back_button, UiStyle.BLUE)
 	_result_panel.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.PANEL, 20, 5, 8))
 	for label: Label in [_info_label, _material_label, _ring_label, _banner, _result_title, _result_body]:
 		UiStyle.outline_label(label, 10)
@@ -653,3 +658,8 @@ func _update_hud() -> void:
 func _on_back_pressed() -> void:
 	Sfx.play(&"click")
 	finished.emit()
+
+
+func _on_retry_pressed() -> void:
+	Sfx.play(&"click")
+	retry_requested.emit(stage_index)
