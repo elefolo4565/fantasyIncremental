@@ -5,7 +5,8 @@
 [sub_resource type="CircleShape2D" id="CircleShape2D_oak"]
 radius = 40.0
 
-[node name="Oak" type="StaticBody2D"]
+[node name="Oak" type="CharacterBody2D"]
+motion_mode = 1
 script = ExtResource("1_oak")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

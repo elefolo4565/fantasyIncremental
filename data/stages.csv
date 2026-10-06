@@ -1,7 +1,7 @@
-id,name,world,rock_count,rock_hp,rock_stone,oak_count,oak_hp,oak_wood,goal,run_time,memo
-plains_1,Plains 1,plains,6,7,1,0,0,0,12,60,平原1。岩の耐久7（強化なしで7発）・岩1個で石1・12個壊せばクリア・制限60秒
-plains_2,Plains 2,plains,7,10,2,0,0,0,28,60,平原2
-plains_3,Plains 3,plains,8,14,3,0,0,0,42,60,平原3（ここをクリアすると森へ）
-forest_1,Forest 1,forest,4,14,3,4,16,1,48,60,森1。木（oak）は叩かずにいると耐久が戻る
-forest_2,Forest 2,forest,4,18,4,5,22,2,60,60,森2
-forest_3,Forest 3,forest,4,22,5,6,28,2,78,60,森3（試作の最終ステージ）
+id,name,world,slime_count,slime_hp,slime_gem,slime_speed,oak_count,oak_hp,oak_wood,goal,memo
+plains_1,Plains 1,plains,6,7,1,55,0,0,0,4,平原1。スライム6匹・耐久7（強化なしで7発）・1匹で宝石1・移動速度55px/秒・4匹倒せばクリア
+plains_2,Plains 2,plains,7,10,2,65,0,0,0,12,平原2
+plains_3,Plains 3,plains,8,14,3,75,0,0,0,24,平原3（ここをクリアすると森へ）
+forest_1,Forest 1,forest,5,14,3,75,4,16,1,32,森1。木（oak）は動かないが叩かずにいると耐久が戻る
+forest_2,Forest 2,forest,5,18,4,85,5,22,2,42,森2
+forest_3,Forest 3,forest,6,22,5,95,6,28,2,55,森3（試作の最終ステージ）

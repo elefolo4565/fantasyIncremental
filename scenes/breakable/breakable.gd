@@ -1,7 +1,7 @@
 class_name Breakable
-extends StaticBody2D
+extends CharacterBody2D
 ## 壊せる物の共通部分。耐久・被弾・破壊・復活と、「あと何発で壊れるか」の表示を受け持つ。
-## 種類ごとの見た目や性質は子クラス（Rock, Oak）で決める。
+## 種類ごとの見た目や性質は子クラス（Slime, Oak）で決める。
 
 signal broken(target: Breakable)
 

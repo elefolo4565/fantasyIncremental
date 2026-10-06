@@ -9,7 +9,7 @@ const SAVE_PATH := "user://save.cfg"
 const UPGRADES_PATH := "res://data/upgrades.csv"
 const STAGES_PATH := "res://data/stages.csv"
 
-var stone := 0
+var gem := 0
 var wood := 0
 ## 強化の id → 今の段
 var levels: Dictionary = {}
@@ -58,22 +58,22 @@ func can_buy(def: UpgradeDef) -> bool:
 	if not is_unlocked(def) or is_maxed(def):
 		return false
 	var cost := next_cost(def)
-	return stone >= cost.x and wood >= cost.y
+	return gem >= cost.x and wood >= cost.y
 
 
 func buy(def: UpgradeDef) -> bool:
 	if not can_buy(def):
 		return false
 	var cost := next_cost(def)
-	stone -= cost.x
+	gem -= cost.x
 	wood -= cost.y
 	levels[def.id] = level(def.id) + 1
 	_changed()
 	return true
 
 
-func add_materials(gained_stone: int, gained_wood: int) -> void:
-	stone += gained_stone
+func add_materials(gained_gem: int, gained_wood: int) -> void:
+	gem += gained_gem
 	wood += gained_wood
 	changed.emit()
 
@@ -90,7 +90,7 @@ func clear_stage(index: int) -> bool:
 
 
 func reset() -> void:
-	stone = 0
+	gem = 0
 	wood = 0
 	levels.clear()
 	unlocked_stage = 0
@@ -111,7 +111,7 @@ func save() -> void:
 	if not _saving:
 		return
 	var config := ConfigFile.new()
-	config.set_value("materials", "stone", stone)
+	config.set_value("materials", "gem", gem)
 	config.set_value("materials", "wood", wood)
 	config.set_value("stages", "unlocked", unlocked_stage)
 	config.set_value("stages", "selected", selected_stage)
@@ -131,7 +131,7 @@ func _load_save() -> void:
 	var config := ConfigFile.new()
 	if config.load(SAVE_PATH) != OK:
 		return
-	stone = config.get_value("materials", "stone", 0)
+	gem = config.get_value("materials", "gem", 0)
 	wood = config.get_value("materials", "wood", 0)
 	unlocked_stage = clampi(config.get_value("stages", "unlocked", 0), 0, stages.size() - 1)
 	selected_stage = clampi(config.get_value("stages", "selected", 0), 0, unlocked_stage)
