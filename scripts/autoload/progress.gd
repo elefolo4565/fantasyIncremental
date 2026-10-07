@@ -53,8 +53,9 @@ func level(id: StringName) -> int:
 	return levels.get(id, 0)
 
 
+## 親を覚えていれば開く。前の魔導樹で覚えた段が残っているノードも開いたままにする。
 func is_unlocked(def: UpgradeDef) -> bool:
-	return def.parent == &"" or level(def.parent) > 0
+	return def.parent == &"" or level(def.parent) > 0 or level(def.id) > 0
 
 
 func is_maxed(def: UpgradeDef) -> bool:

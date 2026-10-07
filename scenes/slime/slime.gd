@@ -3,6 +3,7 @@ extends Breakable
 ## モンスター（スライム）。稼ぎの元であり、同時に脅威でもある。
 ## ふらふら歩き回り、プレイヤーが近づくと寄ってくる。触れると touched_player を出す（ダメージは Run が与える）。
 ## 壊すと宝石（Gem）が手に入り、しばらくするとプレイヤーから離れた場所に湧き直す。
+## 魔導樹の「黄金スライム」があると、湧くたびに golden_chance の確率で金色になる（落とす宝石は Run が増やす）。
 
 signal touched_player(slime: Slime)
 
@@ -10,6 +11,7 @@ const RADIUS := 34.0
 const BODY_COLOR := Color(0.3, 0.78, 1.0)
 const CHASE_BODY := Color(1.0, 0.45, 0.62)
 const HP_BAR_COLOR := Color(1.0, 0.3, 0.3)
+const GOLDEN_COLOR := Color(1.0, 0.82, 0.2)
 const EDGE_MARGIN := 40.0
 const TOP_MARGIN := 140.0
 const SPAWN_TRIES := 30
@@ -18,6 +20,9 @@ const SPAWN_TRIES := 30
 var target: Node2D
 var speed := 0.0
 var contact_damage := 1
+## 湧くたびに金色になる確率（0〜1）
+var golden_chance := 0.0
+var golden := false
 
 var _wander := Vector2.ZERO
 var _wander_left := 0.0
@@ -75,6 +80,8 @@ func _body_scale() -> float:
 
 ## 子クラスで上書きできる。体の色（追ってきているときは赤くなる）。
 func _body_color() -> Color:
+	if golden:
+		return GOLDEN_COLOR
 	return CHASE_BODY if _chasing else BODY_COLOR
 
 
@@ -86,6 +93,7 @@ func _respawn() -> void:
 	if _placed and target != null:
 		position = _far_spot()
 	_placed = true
+	golden = randf() < golden_chance
 	super()
 
 
