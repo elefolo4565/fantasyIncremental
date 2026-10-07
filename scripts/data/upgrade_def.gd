@@ -15,6 +15,8 @@ var axis: StringName
 var ring := 1
 ## 軸の向きからずらす角度（度）
 var angle := 0.0
+## ノードに出すアイコンの名前（SkillIcon で描く）
+var icon: StringName
 var desc := ""
 
 
@@ -30,6 +32,7 @@ static func from_row(row: Dictionary) -> UpgradeDef:
 	def.axis = StringName(row.get("axis", ""))
 	def.ring = maxi(String(row.get("ring", "1")).to_int(), 1)
 	def.angle = String(row.get("angle", "0")).to_float()
+	def.icon = StringName(row.get("icon", ""))
 	def.desc = row.get("desc", "")
 	return def
 

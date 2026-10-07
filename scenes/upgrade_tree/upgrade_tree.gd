@@ -1,7 +1,7 @@
 class_name UpgradeTree
 extends Control
 ## 魔導樹の画面。中央の核から攻撃・生命・収益の3軸が放射状に伸び、強化ノードが並ぶ。
-## 選んだノードの説明・費用と、活動時間などの数値の変化を見せて買えるようにする。
+## ノードは丸いアイコンと段（1/5 など）だけで見せ、名前・説明・費用は選んだときに右の欄に出して買えるようにする。
 ## ステージを選んで START を押すと start_requested を出す。
 ## 魔導樹はピンチ（PC ではホイール）で拡大し、ドラッグで動かせる。背景には、核を幹にした世界樹（攻撃の側が葉、生命・収益の側が根）を描く。
 ## 左下のボタンで、ランでの移動（スティック／タップ移動）と BGM のオン/オフを切り替える（設定は保存する）。
@@ -9,8 +9,16 @@ extends Control
 signal start_requested(stage_index: int)
 
 ## 中心からノード1段ぶんの距離
-const RING_SPACING := 125.0
-const NODE_SIZE := Vector2(100, 56)
+const RING_SPACING := 105.0
+const NODE_SIZE := Vector2(72, 72)
+## ノードの中のアイコンの半径・軸の色の輪の半径と太さ
+const ICON_RADIUS := 19.0
+const AXIS_RING_RADIUS := 29.0
+const AXIS_RING_WIDTH := 4.0
+## 段を出す札の大きさと文字の大きさ
+const BADGE_SIZE := Vector2(44, 20)
+const BADGE_FONT_SIZE := 14
+const LOCKED_ICON_TINT := Color(0.55, 0.58, 0.7)
 const TREE_MARGIN := 24.0
 const CORE_RADIUS := 30.0
 const CORE_COLOR := Color(0.95, 0.97, 1.0)
@@ -71,6 +79,7 @@ var _buttons: Dictionary = {}
 var _bounds := Rect2()
 var _max_ring := 1
 var _styles: Dictionary = {}
+var _badge_style: StyleBoxFlat
 var _selected: UpgradeDef
 var _reset_armed := false
 var _zoom := 1.0
@@ -105,6 +114,8 @@ var _drag_distance := 0.0
 func _ready() -> void:
 	for color: Color in [MAXED_COLOR, READY_COLOR, OPEN_COLOR, LOCKED_COLOR]:
 		_styles[color] = _make_style(color)
+	_badge_style = UiStyle.box(UiStyle.OUTLINE, int(BADGE_SIZE.y * 0.5), 0, 0)
+	_badge_style.set_content_margin_all(0.0)
 	_compute_bounds()
 	# 線は $TreeClip/Nodes に描く。Control は自分の大きさの外を描いても、その四角が画面から外れると
 	# 丸ごと描かれなくなるので、魔導樹全体の大きさにしておく（拡大すると枝が消える不具合の対策）。
@@ -114,8 +125,8 @@ func _ready() -> void:
 		button.size = NODE_SIZE
 		button.pivot_offset = NODE_SIZE * 0.5
 		button.focus_mode = Control.FOCUS_NONE
-		button.add_theme_font_size_override("font_size", 15)
 		button.pressed.connect(_on_node_pressed.bind(def))
+		button.draw.connect(_draw_node.bind(button, def))
 		button.position = _cell_center(def) - NODE_SIZE * 0.5
 		_nodes.add_child(button)
 		_buttons[def.id] = button
@@ -191,9 +202,25 @@ func _draw_links() -> void:
 	_nodes.draw_circle(core, CORE_RADIUS + 4.0, UiStyle.OUTLINE)
 	_nodes.draw_circle(core, CORE_RADIUS, CORE_COLOR)
 	if _selected != null:
-		var rect := Rect2(_cell_center(_selected) - NODE_SIZE * 0.5, NODE_SIZE).grow(6.0)
-		_nodes.draw_rect(rect.grow(3.0), UiStyle.OUTLINE, false, 4.0)
-		_nodes.draw_rect(rect, SELECT_COLOR, false, 4.0)
+		var radius := NODE_SIZE.x * 0.5 + 8.0
+		_nodes.draw_arc(_cell_center(_selected), radius, 0.0, TAU, 48, UiStyle.OUTLINE, 10.0, true)
+		_nodes.draw_arc(_cell_center(_selected), radius, 0.0, TAU, 48, SELECT_COLOR, 5.0, true)
+
+
+## ノード1つの中身（軸の色の輪・アイコン・段の札）。ボタンの丸い下地の上に描く。
+func _draw_node(button: Button, def: UpgradeDef) -> void:
+	var center := NODE_SIZE * 0.5
+	var unlocked := Progress.is_unlocked(def)
+	var axis_color := _axis_color(def) if unlocked else LOCKED_COLOR.lightened(0.15)
+	button.draw_arc(center, AXIS_RING_RADIUS, 0.0, TAU, 40, axis_color, AXIS_RING_WIDTH, true)
+	SkillIcon.draw(button, def.icon, center, ICON_RADIUS, Color.WHITE if unlocked else LOCKED_ICON_TINT)
+	var badge := Rect2(Vector2(center.x - BADGE_SIZE.x * 0.5, NODE_SIZE.y - BADGE_SIZE.y * 0.6), BADGE_SIZE)
+	button.draw_style_box(_badge_style, badge)
+	var text := "%d/%d" % [Progress.level(def.id), def.max_level]
+	var font := ThemeDB.fallback_font
+	var baseline := badge.position + Vector2(0, (badge.size.y + BADGE_FONT_SIZE * 0.7) * 0.5)
+	var text_color := MAXED_COLOR if Progress.is_maxed(def) else (Color.WHITE if unlocked else LOCKED_TEXT)
+	button.draw_string(font, baseline, text, HORIZONTAL_ALIGNMENT_CENTER, badge.size.x, BADGE_FONT_SIZE, text_color)
 
 
 ## 背景の世界樹。核が幹の真ん中で、上に枝と葉、下に根が広がる。
@@ -280,7 +307,7 @@ func _node_center(def: UpgradeDef) -> Vector2:
 
 
 func _make_style(color: Color) -> StyleBoxFlat:
-	return UiStyle.box(color, 12, 4, 5)
+	return UiStyle.box(color, int(NODE_SIZE.x * 0.5), 4, 5)
 
 
 ## 最初は核を真ん中にして等倍で見せる。ピンチで縮めると全体が見える。
@@ -379,7 +406,6 @@ func _refresh() -> void:
 	_material_label.text = "宝石 %d　　木材 %d" % [Progress.gem, Progress.wood]
 	for def in Progress.upgrades:
 		var button: Button = _buttons[def.id]
-		button.text = "%s\n%d/%d" % [def.name, Progress.level(def.id), def.max_level]
 		var color := OPEN_COLOR
 		if Progress.is_maxed(def):
 			color = MAXED_COLOR
@@ -389,11 +415,7 @@ func _refresh() -> void:
 			color = READY_COLOR
 		for state in ["normal", "hover", "pressed", "focus"]:
 			button.add_theme_stylebox_override(state, _styles[color])
-		var text_color := LOCKED_TEXT if color == LOCKED_COLOR else Color.WHITE
-		for state in ["font_color", "font_hover_color", "font_pressed_color"]:
-			button.add_theme_color_override(state, text_color)
-		button.add_theme_color_override("font_outline_color", UiStyle.OUTLINE)
-		button.add_theme_constant_override("outline_size", 6 if color != LOCKED_COLOR else 0)
+		button.queue_redraw()
 	_refresh_detail()
 	_refresh_stage()
 	_move_button.text = "移動: タップ" if Progress.tap_move else "移動: スティック"
