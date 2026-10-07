@@ -37,6 +37,8 @@ var shots: Dictionary = {}
 
 var _by_id: Dictionary = {}
 var _saving := true
+## ステージエディタから試遊しているあいだ、試遊の前の素材・強化・解放を持っておく（終わったら戻す）
+var _test_backup: Dictionary = {}
 
 
 func _ready() -> void:
@@ -149,6 +151,47 @@ func reset() -> void:
 	unlocked_stage = 0
 	selected_stage = 0
 	_changed()
+
+
+## ステージエディタで変えたステージの並びをゲームに反映する（再読み込みまで）。
+func set_stages(list: Array[StageDef]) -> void:
+	stages = list
+	var last := maxi(stages.size() - 1, 0)
+	unlocked_stage = clampi(unlocked_stage, 0, last)
+	selected_stage = clampi(selected_stage, 0, unlocked_stage)
+	if not _test_backup.is_empty():
+		_test_backup["unlocked"] = clampi(_test_backup["unlocked"], 0, last)
+		_test_backup["selected"] = clampi(_test_backup["selected"], 0, _test_backup["unlocked"])
+
+
+## ステージエディタからの試遊を始める。強化は upgrades で選ぶ（&"current" 今のまま・&"none" なし・&"max" 全部最大）。
+## 試遊のあいだは保存せず、end_test() で素材・強化・解放を試遊の前に戻す。
+func begin_test(upgrades_mode: StringName) -> void:
+	if _test_backup.is_empty():
+		_test_backup = {"gem": gem, "wood": wood, "levels": levels.duplicate(), "unlocked": unlocked_stage,
+				"selected": selected_stage, "saving": _saving}
+	_saving = false
+	levels = (_test_backup["levels"] as Dictionary).duplicate()
+	match upgrades_mode:
+		&"none":
+			levels.clear()
+		&"max":
+			for def in upgrades:
+				levels[def.id] = def.max_level
+	unlocked_stage = maxi(stages.size() - 1, 0)
+
+
+func end_test() -> void:
+	if _test_backup.is_empty():
+		return
+	gem = _test_backup["gem"]
+	wood = _test_backup["wood"]
+	levels = _test_backup["levels"]
+	unlocked_stage = _test_backup["unlocked"]
+	selected_stage = _test_backup["selected"]
+	_saving = _test_backup["saving"]
+	_test_backup.clear()
+	changed.emit()
 
 
 ## CI の動作確認用。全ての強化を最大にし、保存しない。

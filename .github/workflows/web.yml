@@ -80,7 +80,9 @@ jobs:
           godot --headless --quit-after 600 2>&1 | tee run.log
           # 全強化を最大にして最後のステージを直接遊ばせ、ラン中の処理も確かめる
           godot --headless --quit-after 1800 -- --smoke-run 2>&1 | tee smoke_run.log
-          if grep -E "SCRIPT ERROR|Parse Error|^ERROR" import.log run.log smoke_run.log; then
+          # ステージエディタを開き、そこから試遊を始める流れも確かめる
+          godot --headless --quit-after 900 -- --smoke-stage-editor 2>&1 | tee smoke_stage_editor.log
+          if grep -E "SCRIPT ERROR|Parse Error|^ERROR" import.log run.log smoke_run.log smoke_stage_editor.log; then
             echo "::error::Godot がエラーを出しました（上のログを参照）"
             exit 1
           fi

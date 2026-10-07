@@ -32,8 +32,12 @@ const SHATTER_DELAY := 0.07
 const TILE_COLORS := {
 	&"plains": [Color(0.55, 0.82, 0.36), Color(0.5, 0.76, 0.33)],
 	&"forest": [Color(0.3, 0.6, 0.32), Color(0.27, 0.55, 0.29)],
+	&"volcano": [Color(0.45, 0.3, 0.26), Color(0.4, 0.26, 0.23)],
+	&"heaven": [Color(0.82, 0.87, 0.96), Color(0.76, 0.82, 0.93)],
+	&"demon": [Color(0.3, 0.2, 0.36), Color(0.26, 0.17, 0.32)],
 }
-const DECOR_COLORS := {&"plains": Color(0.36, 0.62, 0.24), &"forest": Color(0.17, 0.4, 0.2)}
+const DECOR_COLORS := {&"plains": Color(0.36, 0.62, 0.24), &"forest": Color(0.17, 0.4, 0.2),
+		&"volcano": Color(0.6, 0.3, 0.18), &"heaven": Color(0.62, 0.7, 0.86), &"demon": Color(0.45, 0.28, 0.5)}
 const FLOWER_COLORS := [Color(1.0, 0.85, 0.25), Color(1.0, 0.5, 0.65), Color(1, 1, 1)]
 const TILE_SIZE := 64.0
 const SHAKE_DECAY := 30.0
@@ -476,6 +480,7 @@ func _spawn(target: Breakable, base_hp: int, reward: int, area: Vector2, taken: 
 func _spawn_monster(enemy: EnemyDef, area: Vector2, taken: Array[Vector2]) -> void:
 	var monster := _new_monster(enemy, _stage.enemy_speed)
 	monster.golden_chance = Stats.effect(&"golden", Progress.levels) / 100.0
+	monster.respawn_delay = _stage.respawn_time
 	_spawn(monster, enemy.hp_from(_stage.enemy_hp), enemy.gem_from(_stage.enemy_gem), area, taken)
 
 

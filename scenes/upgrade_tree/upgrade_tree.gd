@@ -9,6 +9,8 @@ extends Control
 signal start_requested(stage_index: int)
 ## 開発用の敵エディタを開く
 signal editor_requested
+## 開発用のステージエディタを開く
+signal stage_editor_requested
 
 ## 中心からノード1段ぶんの距離
 const RING_SPACING := 105.0
@@ -112,6 +114,7 @@ var _drag_distance := 0.0
 @onready var _bgm_button: Button = $BgmButton
 @onready var _se_button: Button = $SeButton
 @onready var _editor_button: Button = $EditorButton
+@onready var _stage_editor_button: Button = $StageEditorButton
 
 
 func _ready() -> void:
@@ -143,6 +146,7 @@ func _ready() -> void:
 	_bgm_button.pressed.connect(_on_bgm_pressed)
 	_se_button.pressed.connect(_on_se_pressed)
 	_editor_button.pressed.connect(_on_editor_pressed)
+	_stage_editor_button.pressed.connect(_on_stage_editor_pressed)
 	Progress.changed.connect(_refresh)
 	resized.connect(_layout)
 	_nodes.draw.connect(_draw_links)
@@ -166,6 +170,7 @@ func _apply_styles() -> void:
 	UiStyle.button(_bgm_button, UiStyle.BLUE)
 	UiStyle.button(_se_button, UiStyle.BLUE)
 	UiStyle.button(_editor_button, UiStyle.DISABLED)
+	UiStyle.button(_stage_editor_button, UiStyle.DISABLED)
 	for panel: PanelContainer in [$Side/Detail, $Side/StagePanel]:
 		panel.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.PANEL, 16, 4, 6))
 	for label: Label in [$Title, _material_label, _name_label, _level_label, _desc_label, _cost_label,
@@ -574,6 +579,12 @@ func _on_editor_pressed() -> void:
 	Sfx.play(&"click")
 	Progress.save()
 	editor_requested.emit()
+
+
+func _on_stage_editor_pressed() -> void:
+	Sfx.play(&"click")
+	Progress.save()
+	stage_editor_requested.emit()
 
 
 func _on_move_pressed() -> void:
