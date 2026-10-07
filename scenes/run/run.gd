@@ -2,7 +2,7 @@ class_name Run
 extends Node2D
 ## 1回のラン（1ステージ）。物を置いて制限時間を数え、決まった数を倒すとボスが出る。ボスを倒せばクリア（次のステージが解放される）。
 ## 倒した物は素材（Pickup）を落とし、プレイヤーが近づいて拾ったぶんだけ手に入る。クリアしたときは落ちている素材も全部手に入る。
-## 砕裂（Shatter）・残響（Echo）・精霊の輪のレベルアップもここで扱う。
+## 砕裂（Shatter）・残響（Echo）もここで扱う。
 ## 魔導樹の生命・収益の軸のうち、ランの中で効くもの（時の雫・豊穣・懸賞・黄金スライム・連鎖収穫・大地の吸引・遺品）もここで扱う。
 ## モンスター（Slime）は稼ぎの元であり脅威でもある。触れると体力が減り、体力が 0 になるとそこでランが終わる。
 ## クリア・時間切れ・やられたら結果を表示し、戻るボタンで finished、「もう一度」で retry_requested を出す。
@@ -21,7 +21,6 @@ const BOSS_SCENE := preload("res://scenes/boss/boss.tscn")
 const PICKUP_SCENE := preload("res://scenes/pickup/pickup.tscn")
 const OAK_SCENE := preload("res://scenes/oak/oak.tscn")
 const BOLT_SCENE := preload("res://scenes/bolt/bolt.tscn")
-const RING_SCENE := preload("res://scenes/spirit_ring/spirit_ring.tscn")
 const DEBRIS_SCENE := preload("res://scenes/debris/debris.tscn")
 const POPUP_SCENE := preload("res://scenes/popup_text/popup_text.tscn")
 const GRASS_SCENE := preload("res://scenes/grass/grass.tscn")
@@ -88,7 +87,6 @@ var _time_left := 0.0
 var _broken_count := 0
 var _gained_gem := 0
 var _gained_wood := 0
-var _ring_progress := 0
 var _over := false
 var _defeated := false
 var _cleared := false
@@ -102,7 +100,6 @@ var _last_kill_at := -INF
 var _vacuum_wait := 0.0
 var _kept := 0
 var _player: Player
-var _ring: SpiritRing
 var _decor: Array[Vector2] = []
 var _shake := 0.0
 var _tuning := false
@@ -124,8 +121,6 @@ var _grass_layer: Node2D
 @onready var _info_label: Label = $HUD/InfoLabel
 @onready var _time_label: Label = $HUD/TimeLabel
 @onready var _material_label: Label = $HUD/MaterialLabel
-@onready var _ring_label: Label = $HUD/RingLabel
-@onready var _ring_bar: ProgressBar = $HUD/RingBar
 @onready var _banner: Label = $HUD/Banner
 @onready var _result_panel: PanelContainer = $HUD/ResultPanel
 @onready var _result_title: Label = $HUD/ResultPanel/Box/Title
@@ -160,9 +155,6 @@ func _ready() -> void:
 	_player.revived.connect(_on_player_revived)
 	_world.add_child(_player)
 	_player.set_body_scale(_player_scale())
-	_ring = RING_SCENE.instantiate() as SpiritRing
-	_player.add_child(_ring)
-	_ring.level = mini(roundi(Stats.effect(&"ring_start", Progress.levels)), Balance.get_int("ring_max_level"))
 
 	_grass_layer = Node2D.new()
 	add_child(_grass_layer)
@@ -346,12 +338,8 @@ func _apply_styles() -> void:
 	UiStyle.button(_retry_button, UiStyle.YELLOW)
 	UiStyle.button(_back_button, UiStyle.BLUE)
 	_result_panel.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.PANEL, 20, 5, 8))
-	for label: Label in [_info_label, _time_label, _material_label, _ring_label, _banner, _result_title, _result_body]:
+	for label: Label in [_info_label, _time_label, _material_label, _banner, _result_title, _result_body]:
 		UiStyle.outline_label(label, 10)
-	_ring_bar.add_theme_stylebox_override("background", UiStyle.box(Color(0.15, 0.15, 0.25), 8, 4, 0))
-	var fill := UiStyle.box(SpiritRing.ORB_COLOR, 8, 0, 0)
-	fill.set_content_margin_all(0.0)
-	_ring_bar.add_theme_stylebox_override("fill", fill)
 
 
 func _process(delta: float) -> void:
@@ -561,7 +549,6 @@ func _on_broken(target: Breakable) -> void:
 		get_tree().create_timer(SHATTER_DELAY).timeout.connect(_shatter.bind(at, shatter))
 	for _i in roundi(Stats.effect(&"echo", Progress.levels)):
 		_fire_echo.call_deferred(at)
-	_advance_ring()
 
 	if not _boss_called and _broken_count >= _stage.boss_after:
 		_boss_called = true
@@ -672,25 +659,6 @@ func _fire_echo(at: Vector2) -> void:
 	bolt.global_position = at
 
 
-func _advance_ring() -> void:
-	var max_level := Balance.get_int("ring_max_level")
-	if _ring.level >= max_level:
-		return
-	_ring_progress += 1
-	if _ring_progress < maxi(Balance.get_int("ring_breaks_per_level"), 1):
-		return
-	_ring_progress = 0
-	_ring.level += 1
-	Sfx.play(&"ring")
-	_popup(_player.global_position + Vector2(0, -40), "精霊の輪 Lv%d" % _ring.level, SpiritRing.ORB_COLOR, 30)
-	var burst := roundi(Stats.effect(&"ring_burst", Progress.levels))
-	if burst > 0:
-		for node in get_tree().get_nodes_in_group(Breakable.GROUP):
-			var target := node as Breakable
-			if target != null and target.is_alive():
-				target.take_hit(burst)
-
-
 func _popup(at: Vector2, text: String, color: Color, size := 26, lifetime := 0.8) -> void:
 	var popup := POPUP_SCENE.instantiate() as PopupText
 	popup.text = text
@@ -786,10 +754,6 @@ func _update_hud() -> void:
 	_info_label.text = "%s　　HP %d/%d　　%s" % [_stage.name, _player.hp, _player.max_hp, goal]
 	_time_label.text = "残り%d秒" % ceili(_time_left)
 	_material_label.text = "宝石 %d　木材 %d" % [Progress.gem, Progress.wood]
-	var max_level := Balance.get_int("ring_max_level")
-	var need := maxi(Balance.get_int("ring_breaks_per_level"), 1)
-	_ring_label.text = "精霊の輪 Lv%d" % _ring.level + ("（最大）" if _ring.level >= max_level else "")
-	_ring_bar.value = 1.0 if _ring.level >= max_level else float(_ring_progress) / need
 
 
 func _on_back_pressed() -> void:

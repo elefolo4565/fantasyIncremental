@@ -20,13 +20,6 @@ slime_respawn_time,3,倒したスライムが別の場所に湧き直すまで�
 oak_respawn_time,4,壊れた木が復活するまでの時間（秒）
 oak_regen_delay,1.5,森の木が最後に攻撃されてから耐久が戻り始めるまでの時間（秒）
 oak_regen_interval,0.5,森の木の耐久が1戻る間隔（秒）
-ring_breaks_per_level,8,精霊の輪のレベルが1上がるのに必要な破壊数（個）
-ring_max_level,3,精霊の輪のレベルの上限（1ランの中だけ）
-ring_damage,1,精霊の輪の玉1回の接触で減らす耐久（強化なし）
-ring_orbit_radius,95,精霊の輪の玉がプレイヤーの周りを回る半径（ピクセル）
-ring_orbit_speed,3,精霊の輪の玉が回る速さ（ラジアン/秒）
-ring_orb_radius,16,精霊の輪の玉の当たり判定の半径（ピクセル）
-ring_hit_cooldown,0.4,精霊の輪が同じ物に続けて当たるまでの間隔（秒）
 boss_contact_damage,1,ボスに触れたときに減る体力
 pickup_radius,70,倒した敵が落とした素材を吸い寄せ始める距離（ピクセル）。魔導樹の「引き寄せ」で広がる
 pickup_pull_speed,900,吸い寄せられる素材の最高速度（ピクセル/秒）
