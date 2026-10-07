@@ -7,8 +7,18 @@ extends Breakable
 signal touched_player(slime: Slime)
 
 const RADIUS := 34.0
-const BODY_COLOR := Color(0.3, 0.78, 1.0)
-const CHASE_BODY := Color(1.0, 0.45, 0.62)
+## 3Dモデルを8方向×4コマに焼いた絵（tools/render_enemies で作り直せる）。追ってきているときは赤い怒り顔。
+const SHEET := preload("res://assets/sprites/enemies/slime.png")
+const ANGRY_SHEET := preload("res://assets/sprites/enemies/slime_angry.png")
+const SHEET_DIRECTIONS := 8
+const SHEET_FRAMES := 4
+## コマの中で足元が来る位置（render_enemies.gd の foot と合わせる）。
+const SHEET_FOOT := Vector2(64, 104)
+## 絵の1ピクセルを、この体の座標で何単位に描くか。
+const SHEET_PIXEL := 1.0
+const FOOT_Y := 30.0
+## 跳ねる動きの速さ（1秒に何周するか）
+const BOUNCE_RATE := 1.3
 const HP_BAR_COLOR := Color(1.0, 0.3, 0.3)
 const EDGE_MARGIN := 40.0
 const TOP_MARGIN := 140.0
@@ -24,6 +34,7 @@ var _wander_left := 0.0
 var _chasing := false
 var _bob := 0.0
 var _placed := false
+var _facing := Vector2.DOWN
 
 
 func kind() -> StringName:
@@ -45,6 +56,7 @@ func _physics_process(delta: float) -> void:
 	var dir := _choose_direction(delta)
 	velocity = dir * speed * (Balance.get_float("slime_chase_multiplier") if _chasing else 1.0)
 	move_and_slide()
+	_update_facing()
 	var area := get_viewport_rect().size
 	var clamped := position.clamp(Vector2(EDGE_MARGIN, TOP_MARGIN), area - Vector2(EDGE_MARGIN, EDGE_MARGIN))
 	if clamped != position:
@@ -73,9 +85,17 @@ func _body_scale() -> float:
 	return radius() / RADIUS
 
 
-## 子クラスで上書きできる。体の色（追ってきているときは赤くなる）。
-func _body_color() -> Color:
-	return CHASE_BODY if _chasing else BODY_COLOR
+## 子クラスで上書きできる。描く絵（追ってきているときは怒り顔）。
+func _sheet() -> Texture2D:
+	return ANGRY_SHEET if _chasing else SHEET
+
+
+## 追ってきているときはプレイヤーのほうを、そうでなければ進む向きを向く。止まっているときは向きを変えない。
+func _update_facing() -> void:
+	if _chasing and target != null:
+		_facing = global_position.direction_to(target.global_position)
+	elif velocity.length_squared() > 1.0:
+		_facing = velocity.normalized()
 
 
 func _bar_color() -> Color:
@@ -106,19 +126,6 @@ func _far_spot() -> Vector2:
 
 
 func _draw_body(flash_amount: float) -> void:
-	var squash := 1.0 + sin(_bob * 8.0) * 0.07
-	var size := Vector2(RADIUS * squash, RADIUS * 0.82 / squash)
-	var center := Vector2(0, RADIUS - size.y - 2.0)
 	Toon.shadow(self, Vector2(0, RADIUS - 4.0), Vector2(RADIUS * 0.95, RADIUS * 0.32))
-	var body := _body_color().lerp(FLASH_COLOR, flash_amount)
-	Toon.shaded_blob(self, center, size, body)
-	var look := Vector2.ZERO
-	if target != null:
-		look = global_position.direction_to(target.global_position)
-	var eye_y := center.y - size.y * 0.15
-	Toon.eye(self, Vector2(-12, eye_y), 8.0, look)
-	Toon.eye(self, Vector2(12, eye_y), 8.0, look)
-	if _chasing:
-		draw_line(Vector2(-21, eye_y - 13), Vector2(-5, eye_y - 7), Toon.OUTLINE, 4.0)
-		draw_line(Vector2(21, eye_y - 13), Vector2(5, eye_y - 7), Toon.OUTLINE, 4.0)
-	draw_arc(Vector2(0, eye_y + 12), 6.0, 0.2, PI - 0.2, 8, Toon.OUTLINE, 3.0)
+	SpriteSheet.draw(self, _sheet(), _facing, fmod(_bob * BOUNCE_RATE, 1.0), Vector2(0, FOOT_Y),
+			SHEET_FOOT, SHEET_PIXEL, SHEET_DIRECTIONS, SHEET_FRAMES, flash_amount)
