@@ -5,3 +5,6 @@ export_credentials.cfg
 
 # ビルド成果物
 /build/
+
+# CI が書き出し時に作る版表示
+/version.txt

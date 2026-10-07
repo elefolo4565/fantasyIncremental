@@ -13,6 +13,12 @@ const FADE_OUT_TIME := 0.25
 const FADE_IN_TIME := 0.3
 const CURTAIN_COLOR := Color(0.05, 0.04, 0.1)
 
+## 右下の版表示（見た目だけ）。中身は書き出し時に CI が version.txt に書く（PR 番号と commit）
+const VERSION_FILE := "res://version.txt"
+const VERSION_FONT_SIZE := 14
+const VERSION_COLOR := Color(1, 1, 1, 0.55)
+const VERSION_MARGIN := 6.0
+
 var _screen: Node
 var _curtain: ColorRect
 var _switching := false
@@ -31,11 +37,37 @@ func _ready() -> void:
 	_curtain.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_curtain.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(_curtain)
+	_add_version_label()
 	if OS.get_cmdline_user_args().has("--smoke-run"):
 		Progress.enable_smoke_mode()
 		_show_run(Progress.stages.size() - 1)
 	else:
 		_show_tree()
+
+
+## どの版を遊んでいるか分かるよう、画面の右下にいつも小さく出す（触っても反応しない）。
+func _add_version_label() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 99
+	add_child(layer)
+	var label := Label.new()
+	label.text = _read_version()
+	label.add_theme_font_size_override("font_size", VERSION_FONT_SIZE)
+	label.add_theme_color_override("font_color", VERSION_COLOR)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	label.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, int(VERSION_MARGIN))
+	label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	label.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	layer.add_child(label)
+
+
+func _read_version() -> String:
+	if not FileAccess.file_exists(VERSION_FILE):
+		return "開発版"
+	var text := FileAccess.get_file_as_string(VERSION_FILE).strip_edges()
+	return text if not text.is_empty() else "開発版"
 
 
 func _show_tree() -> void:
