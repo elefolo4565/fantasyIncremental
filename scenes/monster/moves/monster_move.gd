@@ -15,6 +15,16 @@ static func create(id: StringName) -> MonsterMove:
 			return DashMove.new()
 		&"chase":
 			return ChaseMove.new()
+		&"keep_away":
+			return KeepAwayMove.new()
+		&"zigzag":
+			return ZigzagMove.new()
+		&"orbit":
+			return OrbitMove.new()
+		&"jump":
+			return JumpMove.new()
+		&"flee":
+			return FleeMove.new()
 	push_error("敵の動き %s がありません（scenes/monster/moves/monster_move.gd の create）" % id)
 	return WanderChaseMove.new()
 
@@ -37,6 +47,21 @@ func is_angry() -> bool:
 ## 向く方向。Vector2.ZERO なら Monster の決まり（怒っているときはプレイヤー、ほかは進む向き）に任せる。
 func facing() -> Vector2:
 	return Vector2.ZERO
+
+
+## プレイヤーに触れて当たりになるか（跳んでいる最中などは false）。
+func can_touch() -> bool:
+	return true
+
+
+## 当たりの届く距離に足す長さ（ピクセル。着地の衝撃など）。
+func touch_bonus() -> float:
+	return 0.0
+
+
+## 体の絵を浮かせる高さ（ピクセル。跳んでいる最中など。見た目だけで、影と当たりは地面のまま）。
+func lift() -> float:
+	return 0.0
 
 
 ## 画面の端にぶつかったときに呼ばれる。
