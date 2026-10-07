@@ -54,6 +54,24 @@ jobs:
           fi
           echo "$HOME/godot" >> "$GITHUB_PATH"
 
+      # 画面の右下に出す版表示。PR では PR 番号、main ではマージした PR の番号を入れる
+      - name: Write version label
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PR_NUMBER}" ]; then
+            PR_NUMBER="$(git log -1 --format=%s | grep -oE '#[0-9]+' | head -n1 | tr -d '#' || true)"
+          fi
+          SHORT="${HEAD_SHA:0:7}"
+          if [ -n "${PR_NUMBER}" ]; then
+            echo "PR#${PR_NUMBER} (${SHORT})" > version.txt
+          else
+            echo "${SHORT}" > version.txt
+          fi
+          cat version.txt
+
       - name: Import project
         run: godot --headless --import 2>&1 | tee import.log
 
