@@ -8,8 +8,7 @@ const SCALE := 1.9
 const BOSS_SHEET := preload("res://assets/sprites/enemies/boss.png")
 ## 体の色（倒したときの破片の色に使う）
 const KING_COLOR := Color(0.62, 0.42, 1.0)
-const BOSS_BAR_COLOR := Color(1.0, 0.25, 0.55)
-## 王冠に体力バーが重ならないように持ち上げる量
+## 王冠にダメージの数字が重ならないように持ち上げる量
 const CROWN_CLEARANCE := 16.0
 
 
@@ -17,7 +16,7 @@ func radius() -> float:
 	return RADIUS * SCALE
 
 
-func bar_lift() -> float:
+func head_lift() -> float:
 	return super() + CROWN_CLEARANCE
 
 
@@ -32,8 +31,3 @@ func _choose_direction(_delta: float) -> Vector2:
 
 func _sheet() -> Texture2D:
 	return BOSS_SHEET
-
-
-func _bar_color() -> Color:
-	return BOSS_BAR_COLOR
-

@@ -524,7 +524,7 @@ func _find_free_spot(area: Vector2, taken: Array[Vector2]) -> Vector2:
 func _on_damaged(target: Breakable, amount: int) -> void:
 	if _over or amount <= 0:
 		return
-	var above := (target.bar_lift() + Breakable.BAR_HEIGHT) * target.scale.x + 8.0
+	var above := target.head_lift() * target.scale.x + 8.0
 	var at := target.global_position + Vector2(randf_range(-DAMAGE_JITTER, DAMAGE_JITTER), -above)
 	_popup(at, str(amount), DAMAGE_COLOR, DAMAGE_SIZE, DAMAGE_LIFETIME)
 

@@ -1,7 +1,8 @@
 class_name Breakable
 extends CharacterBody2D
-## 壊せる物の共通部分。耐久・被弾・破壊・復活と、頭の上の体力バーを受け持つ。
-## 体力バーは減っているときだけ出し、数字は出さない（与えたダメージは damaged を受けた側が出す）。
+## 壊せる物の共通部分。耐久・被弾・破壊・復活を受け持つ。
+## 残りの体力は体の色で見せる（下から残りの割合の高さまで元の色、上は色が抜ける）。子クラスは hp_fill() を SpriteSheet.draw に渡す。
+## 数字は出さない（与えたダメージは damaged を受けた側が出す）。
 ## 種類ごとの見た目や性質は子クラス（Slime, Oak）で決める。
 
 signal broken(target: Breakable)
@@ -10,12 +11,12 @@ signal damaged(target: Breakable, amount: int)
 const GROUP := &"breakable"
 const FLASH_COLOR := Color(1.0, 0.95, 0.8)
 const FLASH_TIME := 0.12
-const BAR_COLOR := Color(1.0, 0.82, 0.2)
-const BAR_BACK := Color(0.25, 0.2, 0.3)
 const OUTLINE_COLOR := Toon.OUTLINE
 const POP_SCALE := Vector2(0.18, 0.12)
-const BAR_HEIGHT := 10.0
-const BAR_GAP := 14.0
+## 頭の上の、与えたダメージの数字を出す位置までの余白（見た目だけ）
+const HEAD_GAP := 24.0
+## 体の色が減っていく速さ（1秒に体の高さの何割ぶん。見た目だけ）
+const FILL_SPEED := 2.0
 
 ## 生成する側が add_child の前に入れる
 var base_hp := 1
@@ -25,6 +26,8 @@ var max_hp := 1
 var hp := 0
 
 var _flash := 0.0
+## いま見せている体の色の高さ（0〜1）。残りの体力の割合へなめらかに近づける
+var _shown_fill := 1.0
 
 @onready var _shape: CollisionShape2D = $CollisionShape2D
 
@@ -36,6 +39,10 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if _flash > 0.0:
 		_flash = maxf(_flash - delta, 0.0)
+		queue_redraw()
+	var fill := float(hp) / maxi(max_hp, 1)
+	if not is_equal_approx(_shown_fill, fill):
+		_shown_fill = move_toward(_shown_fill, fill, FILL_SPEED * delta)
 		queue_redraw()
 
 
@@ -51,9 +58,9 @@ func respawn_time() -> float:
 	return 3.0
 
 
-## 中心から体力バーの下端までの高さ。
-func bar_lift() -> float:
-	return radius() + BAR_GAP
+## 中心から、与えたダメージの数字を出す頭の上までの高さ。
+func head_lift() -> float:
+	return radius() + HEAD_GAP
 
 
 ## 壊れたあと湧き直すか。ボスは湧き直さない。
@@ -67,6 +74,11 @@ func is_alive() -> bool:
 
 func is_undamaged() -> bool:
 	return hp >= max_hp
+
+
+## 体のうち元の色で描く高さ（0〜1）。残りの体力の割合を、なめらかに追いかける。
+func hp_fill() -> float:
+	return _shown_fill
 
 
 func take_hit(damage: int) -> void:
@@ -114,6 +126,7 @@ func _break() -> void:
 func _respawn() -> void:
 	max_hp = Stats.max_hp(base_hp, Progress.levels)
 	hp = max_hp
+	_shown_fill = 1.0
 	visible = true
 	_shape.set_deferred("disabled", false)
 	add_to_group(GROUP)
@@ -121,21 +134,8 @@ func _respawn() -> void:
 
 
 func _draw() -> void:
-	var r := radius()
 	var pop := _flash / FLASH_TIME
 	draw_set_transform(Vector2.ZERO, 0.0,
 			Vector2(1.0 + pop * POP_SCALE.x, 1.0 - pop * POP_SCALE.y) * _body_scale())
 	_draw_body(pop)
 	draw_set_transform(Vector2.ZERO)
-	# 減っているときだけ、頭の上に残りの体力をバーで出す（数字は出さない）
-	if is_undamaged():
-		return
-	var bar := Rect2(-r * 0.8, -bar_lift() - BAR_HEIGHT, r * 1.6, BAR_HEIGHT)
-	draw_rect(bar.grow(3.0), Toon.OUTLINE)
-	draw_rect(bar, BAR_BACK)
-	draw_rect(Rect2(bar.position, Vector2(bar.size.x * float(hp) / maxi(max_hp, 1), bar.size.y)), _bar_color())
-
-
-## 子クラスで上書きできる。耐久のバーの色。
-func _bar_color() -> Color:
-	return BAR_COLOR
