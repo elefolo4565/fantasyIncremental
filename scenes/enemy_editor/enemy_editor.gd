@@ -5,6 +5,7 @@ extends Control
 ## 右の下では撃つ弾（data/shots.csv の1行）を選び、弾の種類・狙い・数・向き・撃ち方を変えられる。
 ## 変えた内容は CSV にして書き出す（エディタで開いたときは data/enemies.csv・data/shots.csv に保存、Web 版はダウンロードとコピー）。
 ## 書き出すまでの変更はこの端末に下書きとして残り、ゲームにも（再読み込みまで）反映される。
+## 形や色を変えたとき（とまだ絵を焼いていない敵）は、SpriteBaker でその場で絵を焼いて中央の動く絵にも出す。
 
 signal closed
 
@@ -70,6 +71,8 @@ const PATROL_TIME := 9.0
 const PATROL_RESUME := 3.0
 const MODEL_TURN_SPEED := 0.8
 const DRAFT_SAVE_DELAY := 0.8
+## 色をつまみで動かしているあいだは焼かず、手を止めてからこの秒数で焼く
+const BAKE_DELAY := 0.4
 
 var _defs: Array[EnemyDef] = []
 var _columns: PackedStringArray = PackedStringArray(DEFAULT_COLUMNS)
@@ -100,9 +103,19 @@ var _target_hit := 0.0
 var _model_pivot: Node3D
 var _model: MonsterModel
 
+var _baker: SpriteBaker
+var _bake_left := -1.0
+## 敵 → その場で焼いた絵の形と色（変わっていれば焼き直す）
+var _baked_looks: Dictionary = {}
+## id → data/enemies.csv での形と色（assets/sprites/enemies/ の絵はこれで焼いてある）
+var _file_looks: Dictionary = {}
+
 
 func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
+	_baker = SpriteBaker.new()
+	_baker.baked.connect(_on_baked)
+	add_child(_baker)
 	_build_layout()
 	_load(true)
 
@@ -115,6 +128,11 @@ func _process(delta: float) -> void:
 		_draft_left -= delta
 		if _draft_left < 0.0:
 			_save_drafts()
+	if _bake_left >= 0.0:
+		_bake_left -= delta
+		if _bake_left < 0.0 and not _defs.is_empty():
+			_set_status("絵を焼いています…")
+			_baker.bake(_current())
 
 
 func _draw() -> void:
@@ -129,6 +147,10 @@ func _load(use_draft: bool) -> void:
 	if use_draft and FileAccess.file_exists(DRAFT_PATH):
 		path = DRAFT_PATH
 	_columns = _read_header(path, DEFAULT_COLUMNS)
+	_file_looks.clear()
+	for row in Balance.load_table(ENEMIES_PATH):
+		var saved := EnemyDef.from_row(row)
+		_file_looks[saved.id] = _look_of(saved)
 	_defs.clear()
 	for row in Balance.load_table(path):
 		_defs.append(EnemyDef.from_row(row))
@@ -386,6 +408,8 @@ func _show_def() -> void:
 	_rebuild_monster()
 	_rebuild_model()
 	_refresh_info()
+	if _needs_bake(_current()):
+		_queue_bake(0.0)
 
 
 func _is_boss_somewhere(id: StringName) -> bool:
@@ -441,6 +465,7 @@ func _on_model_selected(index: int) -> void:
 	_current().model = MODELS[index][0]
 	_changed()
 	_rebuild_model()
+	_queue_bake(0.0)
 
 
 func _on_slider_changed(value: float, key: String) -> void:
@@ -473,6 +498,7 @@ func _on_color_changed(color: Color, key: String) -> void:
 	_current().set(key, color)
 	_changed()
 	_rebuild_model()
+	_queue_bake(BAKE_DELAY)
 
 
 func _on_memo_changed() -> void:
@@ -723,6 +749,35 @@ func _draw_target() -> void:
 			Rect2(Vector2(0, Player.FOOT_Y) - Player.SHEET_FOOT * Player.SHEET_PIXEL, Vector2.ONE * Player.SHEET_CELL * Player.SHEET_PIXEL),
 			Rect2(0, wrapi(roundi(facing.angle() / (TAU / Player.SHEET_DIRECTIONS)), 0, Player.SHEET_DIRECTIONS) * Player.SHEET_CELL,
 					Player.SHEET_CELL, Player.SHEET_CELL), tint)
+
+
+# ---- その場で焼く絵 ----
+
+## 形と色の組（これが焼いた絵と同じなら焼き直さない）。
+static func _look_of(def: EnemyDef) -> String:
+	return "%s/%s/%s" % [def.model, def.color.to_html(), def.angry_color.to_html()]
+
+
+## まだ焼いた絵がない敵か、焼いてから形や色を変えた敵。
+func _needs_bake(def: EnemyDef) -> bool:
+	if _baked_looks.has(def):
+		return _baked_looks[def] != _look_of(def)
+	return not ResourceLoader.exists(EnemyDef.SPRITE_DIR + String(def.id) + ".png") \
+			or _file_looks.get(def.id, "") != _look_of(def)
+
+
+func _queue_bake(delay: float) -> void:
+	if not _defs.is_empty() and _needs_bake(_current()):
+		_bake_left = delay
+
+
+func _on_baked(def: EnemyDef, sheets: Dictionary) -> void:
+	def.use_sheets(sheets)
+	_baked_looks[def] = _look_of(def)
+	_set_status("%s の絵を焼きました（保存する絵は Claude が tools/render_enemies で焼き直します）" % def.name)
+	# 焼いている間にまた変えていたら、もう一度焼く
+	if def == _current() and _needs_bake(def):
+		_queue_bake(0.0)
 
 
 # ---- 3Dの見た目 ----

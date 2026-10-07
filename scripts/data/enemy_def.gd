@@ -90,6 +90,11 @@ func speed_from(base: float) -> float:
 
 
 ## variant は &""（ふだん）・&"angry"・&"golden"。その絵がなければふだんの絵を返す。
+## 敵エディタがその場で焼いた絵に差し替える（形や色を変えたとき。sheets は ""・"angry" などの絵）。
+func use_sheets(sheets: Dictionary) -> void:
+	_sheets = sheets.duplicate()
+
+
 func sheet(variant: StringName = &"") -> Texture2D:
 	if _sheets.has(variant):
 		return _sheets[variant]
