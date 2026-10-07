@@ -71,6 +71,14 @@ const TIME_PULSE_SCALE := 0.35
 const TICK_PITCH := 1.0
 const TICK_LAST_PITCH := 1.5
 const TICK_VOLUME_DB := -4.0
+## ボス撃破の演出（見た目だけ）: 揺れの強さ、白い閃光の色と消えるまでの時間、破片の連鎖の数・色・散らばり・衝撃波の大きさ
+const SHAKE_ON_BOSS := 22.0
+const BOSS_FLASH_COLOR := Color(1, 1, 1, 0.85)
+const BOSS_FLASH_TIME := 0.5
+const BOSS_BURSTS := 4
+const BOSS_BURST_COLORS := [Color(1.0, 0.85, 0.3), Color(1, 1, 1), Color(1.0, 0.5, 0.8)]
+const BOSS_BURST_SPREAD := 60.0
+const BOSS_BURST_WAVE := 90.0
 ## 結果のパネルが出てくるまでの時間（見た目だけ、秒）
 const RESULT_DROP_TIME := 0.6
 const RESULT_RISE_TIME := 0.45
@@ -84,6 +92,8 @@ var _broken_count := 0
 var _gained_gem := 0
 var _gained_wood := 0
 var _over := false
+## ボス撃破の演出中（時間を数えない）
+var _finale := false
 var _defeated := false
 var _cleared := false
 var _unlocked := false
@@ -343,7 +353,7 @@ func _apply_styles() -> void:
 func _process(delta: float) -> void:
 	_shake = maxf(_shake - SHAKE_DECAY * delta, 0.0)
 	position = Vector2(randf_range(-_shake, _shake), randf_range(-_shake, _shake))
-	if _over or _tuning:
+	if _over or _tuning or _finale:
 		return
 	_elapsed += delta
 	_time_left = maxf(_time_left - delta, 0.0)
@@ -553,7 +563,7 @@ func _on_broken(target: Breakable) -> void:
 	if is_boss:
 		Sfx.play(&"boss_break")
 		_add_materials(Pickup.GEM, target.reward, at)
-		_on_boss_defeated()
+		_on_boss_defeated(at)
 		return
 	_drop(Pickup.GEM if monster != null else Pickup.WOOD, _reward_for(target), at)
 	_last_kill_at = _elapsed
@@ -620,16 +630,60 @@ func _lying_pickups() -> Array[Pickup]:
 
 
 ## ボスを倒したらクリア。落ちている素材は全部手に入れて、ランを終える。
-func _on_boss_defeated() -> void:
+## ボスを倒したときの演出。ヒットストップ（時間を止める）→ 白い閃光と大きな破片の連鎖をスローモーションで見せる → 結果へ。
+## 撃破の瞬間にボスの曲を止め、結果を出すときにクリアの曲（ジングル）を鳴らす。
+func _on_boss_defeated(at: Vector2) -> void:
 	_cleared = true
+	_finale = true
 	_unlocked = Progress.clear_stage(stage_index)
+	# 演出のあいだはやられないようにし、攻撃も止める
+	_player.tuning = true
+	Bgm.stop()
+	_shake = SHAKE_ON_BOSS
+	_flash_screen()
+	Engine.time_scale = 0.0
+	await get_tree().create_timer(Balance.get_float("boss_hitstop_time"), true, false, true).timeout
+	if not is_inside_tree():
+		Engine.time_scale = 1.0
+		return
+	Engine.time_scale = Balance.get_float("boss_slowmo_scale")
+	_show_banner("撃破！")
+	for i in BOSS_BURSTS:
+		var burst := DEBRIS_SCENE.instantiate() as Debris
+		burst.color = BOSS_BURST_COLORS[i % BOSS_BURST_COLORS.size()]
+		burst.wave_radius = BOSS_BURST_WAVE * (1.0 + i * 0.5)
+		burst.scale = Vector2.ONE * (1.5 + i * 0.5)
+		burst.position = at + Vector2.RIGHT.rotated(randf() * TAU) * randf_range(0.0, BOSS_BURST_SPREAD)
+		_world.add_child(burst)
+		_shake = maxf(_shake, SHAKE_ON_BOSS * 0.6)
+		await get_tree().create_timer(Balance.get_float("boss_slowmo_time") / BOSS_BURSTS, true, false, true).timeout
+		if not is_inside_tree():
+			Engine.time_scale = 1.0
+			return
+	Engine.time_scale = 1.0
 	for pickup in _lying_pickups():
 		_add_materials(pickup.kind, pickup.amount, pickup.global_position)
 		pickup.queue_free()
-	# ボスの曲を止めて、めでたい曲（ジングル）だけを聞かせる
-	Bgm.stop()
 	Sfx.play(&"clear")
 	_finish()
+
+
+## 画面全体を一瞬白く光らせる。
+func _flash_screen() -> void:
+	var flash := ColorRect.new()
+	flash.color = BOSS_FLASH_COLOR
+	flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	$HUD.add_child(flash)
+	var tween := flash.create_tween()
+	tween.set_ignore_time_scale(true)
+	tween.tween_property(flash, "modulate:a", 0.0, BOSS_FLASH_TIME)
+	tween.tween_callback(flash.queue_free)
+
+
+func _exit_tree() -> void:
+	# 演出の途中で画面が切り替わっても、時間の流れを元に戻す
+	Engine.time_scale = 1.0
 
 
 func _show_banner(text: String) -> void:
