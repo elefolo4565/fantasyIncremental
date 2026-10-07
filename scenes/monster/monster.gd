@@ -2,6 +2,7 @@ class_name Monster
 extends Breakable
 ## 敵（モンスター）。稼ぎの元であり、同時に脅威でもある。種類は data/enemies.csv の1行（def）で決まる。
 ## 動きは部品（MonsterMove。scenes/monster/moves/）に任せ、ここは移動・画面の端・プレイヤーとの接触・絵を受け持つ。
+## 物理の層は enemy（2番）で、プレイヤーと木（world、1番）にだけぶつかる。敵同士はぶつからず重なって通り抜ける。
 ## enemies.csv の shot 列に弾（data/shots.csv）があれば、動きとは別に MonsterShooter で弾を撃つ。
 ## 触れると touched_player を出す（ダメージは Run が与える）。壊すと宝石が手に入り、ボスでなければプレイヤーから離れた場所に湧き直す。
 ## 魔導樹の「黄金スライム」があると、金色になれる種類（golden）は湧くたびに golden_chance の確率で金色になる。
