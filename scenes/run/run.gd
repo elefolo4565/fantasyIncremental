@@ -417,6 +417,12 @@ func _on_player_died() -> void:
 	_finish()
 
 
+func _on_shot_hit(damage: int, from: Vector2) -> void:
+	if not _over:
+		_last_contact_damage = damage
+		_player.take_damage(damage, from)
+
+
 func _on_monster_touched(monster: Monster) -> void:
 	if not _over:
 		_last_contact_damage = monster.contact_damage
@@ -470,6 +476,7 @@ func _new_monster(enemy: EnemyDef, base_speed: float) -> Monster:
 	monster.speed = enemy.speed_from(base_speed)
 	monster.contact_damage = enemy.contact_damage
 	monster.touched_player.connect(_on_monster_touched)
+	monster.shot_hit.connect(_on_shot_hit)
 	return monster
 
 

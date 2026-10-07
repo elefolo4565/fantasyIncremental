@@ -1,0 +1,9 @@
+id,name,kind,aim,pattern,count,spread,direction,interval,burst_gap,windup,speed,size,reach,damage,start_range,color,memo
+aimed_bullet,ねらい撃ち,bullet,player,fan,1,0,90,2.2,0.1,0.4,260,9,700,1,420,ffe14d,プレイヤーへ1発ずつ撃つ基本の弾
+arrow_fan,三本矢,arrow,player,fan,3,30,90,2.6,0.1,0.5,380,8,700,1,450,f2e6c9,プレイヤーへ向けて扇状に3本
+ring_bullet,全方位,bullet,fixed,ring,8,360,0,3,0.1,0.6,200,9,600,1,380,ff8ad1,周りぐるりと8発（狙わない）
+spiral_bullet,うずまき,bullet,fixed,spiral,12,360,0,3.5,0.08,0.3,190,8,600,1,400,b28cff,向きを回しながら1発ずつ12発
+burst_bullet,三連射,bullet,player,burst,3,0,90,2.8,0.18,0.4,300,8,700,1,420,ffb84d,プレイヤーへ続けて3発
+wave_front,衝撃波,wave,player,fan,1,0,90,3.2,0.1,0.6,170,22,420,1,360,7fe0ff,進むほど横に広がる波
+bomb_lob,爆弾投げ,bomb,player,fan,1,0,90,3.5,0.1,0.5,260,70,380,1,380,ff6b4d,撃った向きへプレイヤーまでの距離だけ放物線で投げ、着地で爆発（size は爆発の半径）
+laser_beam,レーザー,laser,player,fan,1,0,90,4,0.1,0.9,0,10,560,1,400,ff4d6b,予告の細い線のあと太い光線（speed は使わない。光線が出ている秒数は balance.csv の laser_time）

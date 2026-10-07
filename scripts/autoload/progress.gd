@@ -1,6 +1,6 @@
 extends Node
 ## 魔導樹の強化の段・素材・解放したステージを持つオートロード。
-## 強化ノード・ステージ・敵の定義は data/upgrades.csv・data/stages.csv・data/enemies.csv から読む。
+## 強化ノード・ステージ・敵の定義は data/upgrades.csv・data/stages.csv・data/enemies.csv・data/shots.csv から読む。
 ## 進み具合は user://save.cfg に保存する（Web 版ではブラウザの中に残る）。
 
 signal changed
@@ -9,6 +9,7 @@ const SAVE_PATH := "user://save.cfg"
 const UPGRADES_PATH := "res://data/upgrades.csv"
 const STAGES_PATH := "res://data/stages.csv"
 const ENEMIES_PATH := "res://data/enemies.csv"
+const SHOTS_PATH := "res://data/shots.csv"
 
 var gem := 0
 var wood := 0
@@ -31,6 +32,8 @@ var upgrades: Array[UpgradeDef] = []
 var stages: Array[StageDef] = []
 ## 敵のid → EnemyDef
 var enemies: Dictionary = {}
+## 弾のid → ShotDef
+var shots: Dictionary = {}
 
 var _by_id: Dictionary = {}
 var _saving := true
@@ -48,6 +51,9 @@ func _ready() -> void:
 	for row in Balance.load_table(ENEMIES_PATH):
 		var enemy := EnemyDef.from_row(row)
 		enemies[enemy.id] = enemy
+	for row in Balance.load_table(SHOTS_PATH):
+		var shot_def := ShotDef.from_row(row)
+		shots[shot_def.id] = shot_def
 	_load_save()
 
 
@@ -55,6 +61,13 @@ func enemy(id: StringName) -> EnemyDef:
 	var def := enemies.get(id) as EnemyDef
 	if def == null:
 		push_error("敵 %s が data/enemies.csv にありません" % id)
+	return def
+
+
+func shot(id: StringName) -> ShotDef:
+	var def := shots.get(id) as ShotDef
+	if def == null:
+		push_error("弾 %s が data/shots.csv にありません" % id)
 	return def
 
 

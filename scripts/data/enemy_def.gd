@@ -25,6 +25,8 @@ var model: StringName
 ## 体の色（倒したときの破片の色にも使う）
 var color := Color.WHITE
 var angry_color := Color.WHITE
+## 撃つ弾（data/shots.csv の id）。空なら撃たない
+var shot: StringName
 var memo := ""
 
 var _sheets: Dictionary = {}
@@ -44,6 +46,7 @@ static func from_row(row: Dictionary) -> EnemyDef:
 	def.model = StringName(row.get("model", "slime"))
 	def.color = _parse_color(row.get("color", ""), Color.WHITE)
 	def.angry_color = _parse_color(row.get("angry_color", ""), def.color)
+	def.shot = StringName(row.get("shot", ""))
 	def.memo = row.get("memo", "")
 	return def
 
@@ -54,7 +57,7 @@ func to_row() -> Dictionary:
 		"id": String(id), "name": name, "move": String(move), "size": _num(size),
 		"hp_rate": _num(hp_rate), "gem_rate": _num(gem_rate), "speed_rate": _num(speed_rate),
 		"contact_damage": str(contact_damage), "golden": "1" if golden else "0", "model": String(model),
-		"color": color.to_html(false), "angry_color": angry_color.to_html(false), "memo": memo,
+		"color": color.to_html(false), "angry_color": angry_color.to_html(false), "shot": String(shot), "memo": memo,
 	}
 
 
