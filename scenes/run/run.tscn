@@ -31,6 +31,16 @@ theme_override_constants/outline_size = 8
 theme_override_font_sizes/font_size = 32
 text = "Plains 1    Time 60    Goal 0/8"
 
+[node name="TimeLabel" type="Label" parent="HUD"]
+offset_left = 24.0
+offset_top = 58.0
+offset_right = 324.0
+offset_bottom = 102.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.6)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 32
+text = "Time 15"
+
 [node name="MaterialLabel" type="Label" parent="HUD"]
 layout_mode = 1
 anchors_preset = 1

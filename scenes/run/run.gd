@@ -7,6 +7,7 @@ extends Node2D
 ## モンスター（Slime）は稼ぎの元であり脅威でもある。触れると体力が減り、体力が 0 になるとそこでランが終わる。
 ## クリア・時間切れ・やられたら結果を表示し、戻るボタンで finished、「もう一度」で retry_requested を出す。
 ## 平原の2面からは草地（Grass）を置く。数は stages.csv の grass × Progress.grass_scale。
+## 残り時間が time_warning_seconds 以下になると、残り時間の数字が赤く脈打ち、画面の縁が赤く光り、秒ごとに時計の音が鳴る。
 ## 右上の「調整」から、キャラの大きさの倍率と草地の数の倍率をつまみで試せる（開いているあいだは時間が止まり、無敵で攻撃しない）。
 
 signal finished
@@ -24,6 +25,7 @@ const RING_SCENE := preload("res://scenes/spirit_ring/spirit_ring.tscn")
 const DEBRIS_SCENE := preload("res://scenes/debris/debris.tscn")
 const POPUP_SCENE := preload("res://scenes/popup_text/popup_text.tscn")
 const GRASS_SCENE := preload("res://scenes/grass/grass.tscn")
+const TIME_WARNING_SCENE := preload("res://scenes/time_warning/time_warning.tscn")
 
 const EDGE_MARGIN := 80.0
 const TOP_MARGIN := 150.0
@@ -66,6 +68,14 @@ const GRASS_SCALE_STEP := 0.25
 ## 草地をプレイヤーの開始位置から離す余白（ピクセル）
 const GRASS_START_CLEARANCE := 70.0
 const GRASS_SPOT_TRIES := 40
+## 終了間際に残り時間の数字を赤くして、秒の変わり目に大きくする（見た目だけ）
+const TIME_COLOR := Color(1, 1, 1)
+const TIME_WARNING_COLOR := Color(1.0, 0.3, 0.25)
+const TIME_PULSE_SCALE := 0.35
+## 時計の音の高さ。最後の1秒だけ高くする
+const TICK_PITCH := 1.0
+const TICK_LAST_PITCH := 1.5
+const TICK_VOLUME_DB := -4.0
 
 ## 生成する側が add_child の前に入れる
 var stage_index := 0
@@ -100,12 +110,16 @@ var _grass_label: Label
 ## つまみで増やしたときに同じ場所へ出せるよう、草地の場所と半径を最大数まで先に決めておく
 var _grass_spots: Array[Vector3] = []
 var _grass_nodes: Array[Grass] = []
+var _time_warning: TimeWarning
+## 最後に見た残り秒数（切り上げ）。秒が減ったときに時計の音を鳴らす
+var _last_second := 0
 ## 草地は地面のすぐ上に描く（World は y 順で並べるので、その手前に別の層を置く）
 var _grass_layer: Node2D
 
 @onready var _world: Node2D = $World
 @onready var _stick: VirtualStick = $HUD/VirtualStick
 @onready var _info_label: Label = $HUD/InfoLabel
+@onready var _time_label: Label = $HUD/TimeLabel
 @onready var _material_label: Label = $HUD/MaterialLabel
 @onready var _ring_label: Label = $HUD/RingLabel
 @onready var _ring_bar: ProgressBar = $HUD/RingBar
@@ -120,6 +134,10 @@ var _grass_layer: Node2D
 func _ready() -> void:
 	_stage = Progress.stages[clampi(stage_index, 0, Progress.stages.size() - 1)]
 	_time_left = Stats.run_time(Progress.levels)
+	_last_second = ceili(_time_left)
+	_time_warning = TIME_WARNING_SCENE.instantiate() as TimeWarning
+	$HUD.add_child(_time_warning)
+	$HUD.move_child(_time_warning, 0)
 	_result_panel.visible = false
 	_apply_styles()
 	_banner.visible = false
@@ -325,7 +343,7 @@ func _apply_styles() -> void:
 	UiStyle.button(_retry_button, UiStyle.YELLOW)
 	UiStyle.button(_back_button, UiStyle.BLUE)
 	_result_panel.add_theme_stylebox_override("panel", UiStyle.box(UiStyle.PANEL, 20, 5, 8))
-	for label: Label in [_info_label, _material_label, _ring_label, _banner, _result_title, _result_body]:
+	for label: Label in [_info_label, _time_label, _material_label, _ring_label, _banner, _result_title, _result_body]:
 		UiStyle.outline_label(label, 10)
 	_ring_bar.add_theme_stylebox_override("background", UiStyle.box(Color(0.15, 0.15, 0.25), 8, 4, 0))
 	var fill := UiStyle.box(SpiritRing.ORB_COLOR, 8, 0, 0)
@@ -341,9 +359,35 @@ func _process(delta: float) -> void:
 	_elapsed += delta
 	_time_left = maxf(_time_left - delta, 0.0)
 	_tick_vacuum(delta)
+	_tick_time_warning()
 	if _time_left <= 0.0:
 		_finish()
 	_update_hud()
+
+
+## 終了間際の演出。残り時間の数字を赤く脈打たせ、画面の縁を光らせ、秒が減るたびに時計の音を鳴らす。
+func _tick_time_warning() -> void:
+	var second := ceili(_time_left)
+	var warning := _time_left <= Balance.get_float("time_warning_seconds") and _time_left > 0.0
+	if warning and second < _last_second:
+		Sfx.play(&"tick", 0.0, TICK_VOLUME_DB, TICK_LAST_PITCH if second == 1 else TICK_PITCH)
+	_last_second = second
+	if not warning:
+		_end_time_warning()
+		return
+	# 秒の変わり目でいちばん強く、次の変わり目に向けて弱まる
+	var beat := fposmod(_time_left, 1.0)
+	var strength := beat * beat
+	_time_warning.show_pulse(strength)
+	_time_label.add_theme_color_override("font_color", TIME_WARNING_COLOR)
+	_time_label.pivot_offset = Vector2(0.0, _time_label.size.y * 0.5)
+	_time_label.scale = Vector2.ONE * (1.0 + TIME_PULSE_SCALE * strength)
+
+
+func _end_time_warning() -> void:
+	_time_warning.hide()
+	_time_label.add_theme_color_override("font_color", TIME_COLOR)
+	_time_label.scale = Vector2.ONE
 
 
 func _on_player_hurt() -> void:
@@ -663,6 +707,7 @@ func _finish() -> void:
 	_world.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
 	_stick.visible = false
 	_banner.visible = false
+	_end_time_warning()
 	if not _cleared:
 		_keep_loot()
 	Progress.save()
@@ -719,7 +764,8 @@ func _update_hud() -> void:
 	var goal := "クリア"
 	if not _cleared:
 		goal = "ボスを倒せ！" if _boss != null else "ボスまで %d/%d" % [_broken_count, _stage.boss_after]
-	_info_label.text = "%s　　残り%d秒　　HP %d/%d　　%s" % [_stage.name, ceili(_time_left), _player.hp, _player.max_hp, goal]
+	_info_label.text = "%s　　HP %d/%d　　%s" % [_stage.name, _player.hp, _player.max_hp, goal]
+	_time_label.text = "残り%d秒" % ceili(_time_left)
 	_material_label.text = "宝石 %d　木材 %d" % [Progress.gem, Progress.wood]
 	var max_level := Balance.get_int("ring_max_level")
 	var need := maxi(Balance.get_int("ring_breaks_per_level"), 1)
