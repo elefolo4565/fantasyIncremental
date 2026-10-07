@@ -6,9 +6,9 @@ extends Slime
 
 enum State { WANDER, WINDUP, DASH, REST }
 
-const DASHER_BODY := Color(1.0, 0.62, 0.2)
-const WINDUP_BODY := Color(1.0, 0.95, 0.3)
-const HORN_COLOR := Color(1.0, 0.95, 0.75)
+## 頭に角のある橙色のスライム。予備動作と突進のあいだは黄色い怒り顔になる。
+const DASHER_SHEET := preload("res://assets/sprites/enemies/dasher.png")
+const WINDUP_SHEET := preload("res://assets/sprites/enemies/dasher_windup.png")
 const AIM_COLOR := Color(1.0, 0.25, 0.2, 0.45)
 const AIM_WIDTH := 18.0
 
@@ -53,6 +53,7 @@ func _physics_process(delta: float) -> void:
 			if _state_left <= 0.0:
 				_state = State.WANDER
 	move_and_slide()
+	_update_facing()
 	var area := get_viewport_rect().size
 	var clamped := position.clamp(Vector2(EDGE_MARGIN, TOP_MARGIN), area - Vector2(EDGE_MARGIN, EDGE_MARGIN))
 	if clamped != position:
@@ -84,8 +85,16 @@ func _respawn() -> void:
 	super()
 
 
-func _body_color() -> Color:
-	return WINDUP_BODY if _state == State.WINDUP or _state == State.DASH else DASHER_BODY
+func _sheet() -> Texture2D:
+	return WINDUP_SHEET if _state == State.WINDUP or _state == State.DASH else DASHER_SHEET
+
+
+## 予備動作と突進のあいだは突進する向きを向く。
+func _update_facing() -> void:
+	if _state == State.WINDUP or _state == State.DASH:
+		_facing = _dash_dir
+	else:
+		super()
 
 
 func _draw_body(flash_amount: float) -> void:
@@ -94,6 +103,3 @@ func _draw_body(flash_amount: float) -> void:
 		var reach := Balance.get_float("dasher_dash_distance") / maxf(scale.x, 0.01)
 		draw_line(Vector2.ZERO, _dash_dir * reach, AIM_COLOR, AIM_WIDTH)
 	super(flash_amount)
-	# 頭の小さな角で、ふつうのスライムと見分ける
-	var top := Vector2(0, -RADIUS * 0.55)
-	Toon.polygon(self, PackedVector2Array([top + Vector2(-9, 4), top + Vector2(9, 4), top + Vector2(0, -16)]), HORN_COLOR)
