@@ -19,6 +19,12 @@ const SOUNDS := {
 	&"timeup": "res://assets/audio/se/se_timeup_maoudamashii_jingle06.ogg",
 }
 const VOICES := 12
+## 時計の「チッ」という音はファイルを使わずに作る（短く減衰する高い音。見た目と同じく音色だけの定数）
+const TICK_RATE := 22050
+const TICK_LENGTH := 0.05
+const TICK_FREQ := 1800.0
+const TICK_DECAY := 90.0
+const TICK_GAIN := 0.6
 
 var _streams: Dictionary = {}
 var _players: Array[AudioStreamPlayer] = []
@@ -32,9 +38,10 @@ func _ready() -> void:
 		_players.append(player)
 	for sound: StringName in SOUNDS:
 		_streams[sound] = load(SOUNDS[sound])
+	_streams[&"tick"] = _make_tick()
 
 
-func play(sound: StringName, pitch_jitter := 0.0, volume_db := 0.0) -> void:
+func play(sound: StringName, pitch_jitter := 0.0, volume_db := 0.0, pitch := 1.0) -> void:
 	if not Progress.se_on:
 		return
 	var stream: AudioStream = _streams.get(sound)
@@ -47,9 +54,26 @@ func play(sound: StringName, pitch_jitter := 0.0, volume_db := 0.0) -> void:
 	var player := _players[_next]
 	_next = (_next + 1) % _players.size()
 	player.stream = stream
-	player.pitch_scale = 1.0 + randf_range(-pitch_jitter, pitch_jitter)
+	player.pitch_scale = pitch + randf_range(-pitch_jitter, pitch_jitter)
 	player.volume_db = volume_db
 	player.play()
+
+
+## 時計の音（16bit モノラルの短い音）を作る。
+func _make_tick() -> AudioStreamWAV:
+	var count := int(TICK_RATE * TICK_LENGTH)
+	var data := PackedByteArray()
+	data.resize(count * 2)
+	for i in count:
+		var t := float(i) / TICK_RATE
+		var sample := sin(TAU * TICK_FREQ * t) * exp(-TICK_DECAY * t) * TICK_GAIN
+		data.encode_s16(i * 2, int(sample * 32767.0))
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = TICK_RATE
+	stream.stereo = false
+	stream.data = data
+	return stream
 
 
 func _exit_tree() -> void:
