@@ -3,7 +3,7 @@ extends Control
 ## 魔導樹の画面。中央の核から攻撃・生命・収益の3軸が放射状に伸び、強化ノードが並ぶ。
 ## 選んだノードの説明・費用と、活動時間などの数値の変化を見せて買えるようにする。
 ## ステージを選んで START を押すと start_requested を出す。
-## 魔導樹はピンチ（PC ではホイール）で拡大し、ドラッグで動かせる。
+## 魔導樹はピンチ（PC ではホイール）で拡大し、ドラッグで動かせる。背景には、核を幹にした世界樹（攻撃の側が葉、生命・収益の側が根）を描く。
 ## 左下のボタンで、ランでの移動（スティック／タップ移動）と BGM のオン/オフを切り替える（設定は保存する）。
 
 signal start_requested(stage_index: int)
@@ -22,6 +22,29 @@ const AXES := {
 }
 const AXIS_LABEL_SIZE := 30
 const RING_COLOR := Color(1, 1, 1, 0.12)
+## 背景の世界樹の色
+const WOOD_DARK := Color(0.3, 0.19, 0.12)
+const WOOD_LIGHT := Color(0.46, 0.3, 0.18)
+const LEAF_DARK := Color(0.1, 0.36, 0.22)
+const LEAF_LIGHT := Color(0.2, 0.55, 0.3)
+const LEAF_GLOW := Color(0.55, 0.9, 0.5, 0.18)
+## 葉のかたまり [中心（核から、RING_SPACING 単位）, 半径（同じ単位）]
+const CANOPY := [
+	[Vector2(0.0, -2.7), 1.9], [Vector2(-1.6, -2.2), 1.35], [Vector2(1.6, -2.2), 1.35],
+	[Vector2(-1.1, -3.5), 1.3], [Vector2(1.1, -3.5), 1.3], [Vector2(0.0, -4.2), 1.15],
+	[Vector2(-2.5, -1.4), 0.95], [Vector2(2.5, -1.4), 0.95], [Vector2(-2.6, -3.0), 0.9],
+	[Vector2(2.6, -3.0), 0.9],
+]
+## 太い枝と根 [向き（度）, 長さ（RING_SPACING 単位）, 曲がり具合, 根元の太さ（ピクセル）]
+const LIMBS := [
+	[-90.0, 3.4, 0.0, 34.0], [-128.0, 2.9, -0.35, 22.0], [-52.0, 2.9, 0.35, 22.0],
+	[-160.0, 2.4, -0.3, 16.0], [-20.0, 2.4, 0.3, 16.0],
+]
+const ROOTS := [
+	[150.0, 4.2, 0.25, 40.0], [30.0, 4.2, -0.25, 40.0], [118.0, 3.3, -0.3, 24.0],
+	[62.0, 3.3, 0.3, 24.0], [172.0, 3.0, 0.3, 18.0], [8.0, 3.0, -0.3, 18.0], [90.0, 2.4, 0.0, 22.0],
+]
+const LIMB_STEPS := 14
 const SIDE_WIDTH := 456.0
 const HEADER_HEIGHT := 64.0
 const FOOTER_HEIGHT := 56.0
@@ -83,6 +106,9 @@ func _ready() -> void:
 	for color: Color in [MAXED_COLOR, READY_COLOR, OPEN_COLOR, LOCKED_COLOR]:
 		_styles[color] = _make_style(color)
 	_compute_bounds()
+	# 線は $TreeClip/Nodes に描く。Control は自分の大きさの外を描いても、その四角が画面から外れると
+	# 丸ごと描かれなくなるので、魔導樹全体の大きさにしておく（拡大すると枝が消える不具合の対策）。
+	_nodes.size = _tree_size()
 	for def in Progress.upgrades:
 		var button := Button.new()
 		button.size = NODE_SIZE
@@ -144,6 +170,7 @@ func _draw() -> void:
 ## ノード同士の線・軸の名前・選択枠。$TreeClip/Nodes の中に描くので、拡大・移動に一緒についてくる。
 func _draw_links() -> void:
 	var core := _core()
+	_draw_world_tree(core)
 	for ring in range(1, _max_ring + 1):
 		_nodes.draw_arc(core, ring * RING_SPACING, 0.0, TAU, 96, RING_COLOR, 3.0)
 	var font := ThemeDB.fallback_font
@@ -167,6 +194,48 @@ func _draw_links() -> void:
 		var rect := Rect2(_cell_center(_selected) - NODE_SIZE * 0.5, NODE_SIZE).grow(6.0)
 		_nodes.draw_rect(rect.grow(3.0), UiStyle.OUTLINE, false, 4.0)
 		_nodes.draw_rect(rect, SELECT_COLOR, false, 4.0)
+
+
+## 背景の世界樹。核が幹の真ん中で、上に枝と葉、下に根が広がる。
+func _draw_world_tree(core: Vector2) -> void:
+	for root: Array in ROOTS:
+		_draw_limb(core, root, WOOD_DARK)
+	for limb: Array in LIMBS:
+		_draw_limb(core + Vector2(0, -RING_SPACING * 0.6), limb, WOOD_DARK)
+	for blob: Array in CANOPY:
+		_nodes.draw_circle(core + blob[0] * RING_SPACING, blob[1] * RING_SPACING, LEAF_DARK)
+	for blob: Array in CANOPY:
+		var radius: float = blob[1] * RING_SPACING
+		_nodes.draw_circle(core + blob[0] * RING_SPACING + Vector2(-0.12, -0.15) * radius, radius * 0.78, LEAF_LIGHT)
+	for blob: Array in CANOPY:
+		var radius: float = blob[1] * RING_SPACING
+		_nodes.draw_circle(core + blob[0] * RING_SPACING + Vector2(-0.3, -0.35) * radius, radius * 0.3, LEAF_GLOW)
+	# 幹（根元は太く、葉の中へ細くなる）
+	var trunk := PackedVector2Array([
+		core + Vector2(-48, 40), core + Vector2(-26, -RING_SPACING * 1.6),
+		core + Vector2(26, -RING_SPACING * 1.6), core + Vector2(48, 40)])
+	_nodes.draw_colored_polygon(trunk, WOOD_DARK)
+	_nodes.draw_colored_polygon(PackedVector2Array([trunk[0] + Vector2(14, 0), trunk[1] + Vector2(8, 0),
+			trunk[1] + Vector2(22, 0), trunk[0] + Vector2(40, 0)]), WOOD_LIGHT)
+
+
+## from から伸びる、先へ行くほど細くなる曲がった枝（根）を描く。spec は LIMBS / ROOTS の1行。
+func _draw_limb(from: Vector2, spec: Array, color: Color) -> void:
+	var direction := Vector2.RIGHT.rotated(deg_to_rad(spec[0]))
+	var to: Vector2 = from + direction * float(spec[1]) * RING_SPACING
+	var bend: Vector2 = direction.orthogonal() * float(spec[2]) * float(spec[1]) * RING_SPACING
+	var control := (from + to) * 0.5 + bend
+	var left := PackedVector2Array()
+	var right := PackedVector2Array()
+	for i in LIMB_STEPS + 1:
+		var t := float(i) / LIMB_STEPS
+		var point := from.lerp(control, t).lerp(control.lerp(to, t), t)
+		var tangent := (control - from).lerp(to - control, t).normalized()
+		var half := lerpf(float(spec[3]), 3.0, t)
+		left.append(point + tangent.orthogonal() * half)
+		right.append(point - tangent.orthogonal() * half)
+	right.reverse()
+	_nodes.draw_colored_polygon(left + right, color)
 
 
 func _axis_color(def: UpgradeDef) -> Color:
