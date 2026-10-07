@@ -40,7 +40,9 @@ const SHOT_SLIDERS := [
 ]
 const SHOT_INT_KEYS := ["count", "damage"]
 ## 選べる動き（MonsterMove.create の名前）と、選べる仮モデルの形（MonsterModel の shape）
-const MOVES := [[&"wander_chase", "うろつき、近づくと追う"], [&"dash", "ためて突進"], [&"chase", "ずっと追う（ボス向け）"]]
+const MOVES := [[&"wander_chase", "うろつき、近づくと追う"], [&"dash", "ためて突進"], [&"chase", "ずっと追う（ボス向け）"],
+		[&"keep_away", "距離をとる（弾向け）"], [&"zigzag", "ジグザグに追う"], [&"orbit", "まわりを回って詰める"],
+		[&"jump", "ためて跳ぶ"], [&"flee", "逃げる"]]
 const MODELS := [[&"slime", "スライム"], [&"dasher", "角つき"], [&"king", "王冠つき"], [&"goblin", "ゴブリン"],
 		[&"bat", "こうもり"], [&"warrior", "戦士"], [&"ogre", "オーガ"]]
 const LOOKS := ["ふだん", "怒り顔", "金色"]

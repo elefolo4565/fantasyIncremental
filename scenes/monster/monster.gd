@@ -96,8 +96,8 @@ func _physics_process(delta: float) -> void:
 		position = clamped
 		_move.on_edge()
 	queue_redraw()
-	if target != null and global_position.distance_to(target.global_position) \
-			<= (radius() + Balance.get_float("slime_touch_reach")) * scale.x:
+	if target != null and _move.can_touch() and global_position.distance_to(target.global_position) \
+			<= (radius() + Balance.get_float("slime_touch_reach")) * scale.x + _move.touch_bonus():
 		touched_player.emit(self)
 
 
@@ -165,5 +165,7 @@ func _draw_body(flash_amount: float) -> void:
 		var k := _shooter.windup_progress()
 		draw_arc(Vector2(0, FOOT_Y * 0.4), SPRITE_RADIUS * lerpf(1.8, 1.0, k), 0.0, TAU, 32, WINDUP_COLOR, 5.0)
 	Toon.shadow(self, Vector2(0, SPRITE_RADIUS - 4.0), Vector2(SPRITE_RADIUS * 0.95, SPRITE_RADIUS * 0.32))
-	SpriteSheet.draw(self, _sheet(), _facing, fmod(_bob * BOUNCE_RATE, 1.0), Vector2(0, FOOT_Y),
+	# 跳んでいる最中などは絵だけ浮かせる（キャラの大きさの倍率は掛かっているので、高さは割り戻す）
+	var lift := _move.lift() / maxf(scale.x, 0.01)
+	SpriteSheet.draw(self, _sheet(), _facing, fmod(_bob * BOUNCE_RATE, 1.0), Vector2(0, FOOT_Y - lift),
 			SHEET_FOOT, SHEET_PIXEL, SHEET_DIRECTIONS, SHEET_FRAMES, flash_amount, hp_fill())
