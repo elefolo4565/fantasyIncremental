@@ -45,6 +45,7 @@ tools/                開発用の道具（書き出しに含めない）
 - 壊せる物（モンスター・木など）は基底クラス `Breakable` を継承し、グループ `Breakable.GROUP`（`&"breakable"`）に入れる。
 - 敵は最終的に100種ほどになる予定なので、**敵ごとにシーンやスクリプトを作らない**（2026-10-07 ユーザー合意）。
   敵の種類は `data/enemies.csv` の1行、どのステージに何体出すかは `data/stages.csv` の `enemies` 列。動きは `scenes/monster/moves/` の部品（`MonsterMove`）を `move` 列で選ぶ。
+  弾を撃つ敵は `shot` 列で `data/shots.csv` の1行（弾の種類・狙い・発射数・向き・撃ち方）を選ぶ。撃つ処理は `scenes/monster/monster_shooter.gd`、弾は `scenes/enemy_shot/`。
   新しい動きが要るときだけ部品を1つ足す。絵は `tools/render_enemies` で表から焼く（手順は tools/render_enemies/README.md）。
   敵の数値はゲームの中の開発用の敵エディタ（`scenes/enemy_editor`、魔導樹の画面の左下）でも触れる。ユーザーがエディタの「CSVをコピー」で貼ってきた表は、そのまま `data/enemies.csv` に反映し、絵を焼き直してPRにする。
 - スクリプト先頭に `##` で「このシーンは何をするか」を1〜3行で書く。
