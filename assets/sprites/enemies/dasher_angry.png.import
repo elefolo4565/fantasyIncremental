@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://byxcw7xlcdcej"
-path="res://.godot/imported/dasher_windup.png-f01f143aa3650f76d7390095c8adce32.ctex"
+uid="uid://gy1r3ybixihs"
+path="res://.godot/imported/dasher_angry.png-04fd17a3ab690b51df22efd380d3b4c9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/enemies/dasher_windup.png"
-dest_files=["res://.godot/imported/dasher_windup.png-f01f143aa3650f76d7390095c8adce32.ctex"]
+source_file="res://assets/sprites/enemies/dasher_angry.png"
+dest_files=["res://.godot/imported/dasher_angry.png-04fd17a3ab690b51df22efd380d3b4c9.ctex"]
 
 [params]
 

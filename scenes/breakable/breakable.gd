@@ -3,7 +3,7 @@ extends CharacterBody2D
 ## 壊せる物の共通部分。耐久・被弾・破壊・復活を受け持つ。
 ## 残りの体力は体の色で見せる（下から残りの割合の高さまで元の色、上は色が抜ける）。子クラスは hp_fill() を SpriteSheet.draw に渡す。
 ## 数字は出さない（与えたダメージは damaged を受けた側が出す）。
-## 種類ごとの見た目や性質は子クラス（Slime, Oak）で決める。
+## 種類ごとの見た目や性質は子クラス（Monster, Oak）で決める。
 
 signal broken(target: Breakable)
 signal damaged(target: Breakable, amount: int)

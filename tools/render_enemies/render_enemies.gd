@@ -1,5 +1,5 @@
 extends Node
-## 敵（スライム・突進スライム・ボス・森の木）の3Dモデルを絵に焼き、assets/sprites/enemies/ に保存する道具。
+## 敵（data/enemies.csv の全種類）と森の木の3Dモデルを絵に焼き、assets/sprites/enemies/ に保存する道具。
 ## ゲームには含まれない（開発用）。使い方は tools/render_enemies/README.md。
 ## assets/models/<名前>.glb があればそれを、なければ仮のモデル（placeholder_monster.gd）を焼く。
 
@@ -10,22 +10,18 @@ const CAMERA_PITCH := 40.0
 const OUTLINE_COLOR := Color(0.09, 0.07, 0.13)
 const OUTLINE_PX := 5
 const WALK_ANIMATION := &"walk"
-## 焼く絵の一覧。name はファイル名（.png / .glb）。directions は向きの数、frames は動きのコマ数。
+## 敵の絵は data/enemies.csv の1行ごとに、ふだん（<id>.png）・怒り顔（<id>_angry.png）・金色（<id>_golden.png、golden=1 の敵だけ）を焼く。
+## 形は model 列、色は color・angry_color 列。8方向×跳ねる動き4コマ。
+const ENEMIES_PATH := "res://data/enemies.csv"
+const GOLDEN_COLOR := Color(1.0, 0.82, 0.2)
+## 向きの数・コマ数・足元の位置を変えたら、scenes/monster/monster.gd の SHEET_* も合わせる。
+const DIRECTIONS := 8
+const FRAMES := 4
+const CAMERA_SIZE := 2.2
+const FOOT := Vector2(64, 104)
+## 敵のほかに焼く絵。name はファイル名（.png / .glb）。directions は向きの数、frames は動きのコマ数。
 ## camera_size はコマの縦に映る広さ（モデルの単位）、foot はコマの中で足元が来る位置。
-## 向きの数・コマ数・foot を変えたら、使う側（scenes/slime/slime.gd などの SHEET_*）も合わせる。
-const JOBS := [
-	{"name": "slime", "shape": &"slime", "color": Color(0.3, 0.78, 1.0), "angry": false,
-			"directions": 8, "frames": 4, "camera_size": 2.2, "foot": Vector2(64, 104)},
-	{"name": "slime_angry", "shape": &"slime", "color": Color(1.0, 0.45, 0.62), "angry": true,
-			"directions": 8, "frames": 4, "camera_size": 2.2, "foot": Vector2(64, 104)},
-	{"name": "slime_golden", "shape": &"slime", "color": Color(1.0, 0.82, 0.2), "angry": false,
-			"directions": 8, "frames": 4, "camera_size": 2.2, "foot": Vector2(64, 104)},
-	{"name": "dasher", "shape": &"dasher", "color": Color(1.0, 0.62, 0.2), "angry": false,
-			"directions": 8, "frames": 4, "camera_size": 2.2, "foot": Vector2(64, 104)},
-	{"name": "dasher_windup", "shape": &"dasher", "color": Color(1.0, 0.95, 0.3), "angry": true,
-			"directions": 8, "frames": 4, "camera_size": 2.2, "foot": Vector2(64, 104)},
-	{"name": "boss", "shape": &"boss", "color": Color(0.62, 0.42, 1.0), "angry": true,
-			"directions": 8, "frames": 4, "camera_size": 2.2, "foot": Vector2(64, 104)},
+const EXTRA_JOBS := [
 	{"name": "oak", "shape": &"oak", "color": Color(0.3, 0.78, 0.25), "angry": false,
 			"directions": 1, "frames": 1, "camera_size": 2.6, "foot": Vector2(64, 112)},
 	{"name": "oak_regen", "shape": &"oak", "color": Color(0.6, 1.0, 0.45), "angry": false,
@@ -70,9 +66,23 @@ func _ready() -> void:
 
 func _render_all() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUTPUT_DIR))
-	for job: Dictionary in JOBS:
+	for job: Dictionary in _enemy_jobs() + EXTRA_JOBS:
 		await _render(job)
 	get_tree().quit()
+
+
+## enemies.csv から焼く絵の一覧を作る。
+func _enemy_jobs() -> Array:
+	var jobs := []
+	for row in Balance.load_table(ENEMIES_PATH):
+		var enemy := EnemyDef.from_row(row)
+		var base := {"shape": enemy.model, "directions": DIRECTIONS, "frames": FRAMES,
+				"camera_size": CAMERA_SIZE, "foot": FOOT}
+		jobs.append(base.merged({"name": String(enemy.id), "color": enemy.color, "angry": false}))
+		jobs.append(base.merged({"name": String(enemy.id) + "_angry", "color": enemy.angry_color, "angry": true}))
+		if enemy.golden:
+			jobs.append(base.merged({"name": String(enemy.id) + "_golden", "color": GOLDEN_COLOR, "angry": false}))
+	return jobs
 
 
 func _render(job: Dictionary) -> void:

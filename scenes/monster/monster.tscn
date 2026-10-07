@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/monster/monster.gd" id="1_monster"]
+
+[node name="Monster" type="CharacterBody2D"]
+motion_mode = 1
+script = ExtResource("1_monster")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]

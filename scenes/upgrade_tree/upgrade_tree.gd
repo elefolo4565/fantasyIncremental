@@ -479,11 +479,15 @@ func _stat_texts(levels: Dictionary) -> Dictionary:
 func _stage_targets() -> Array:
 	var stage := Progress.stages[Progress.selected_stage]
 	var targets := []
-	if stage.slime_count > 0:
-		targets.append([Stats.SLIME, "スライム", stage.slime_hp])
+	for entry in stage.enemies:
+		var enemy := Progress.enemy(entry[0])
+		if enemy != null:
+			targets.append([Stats.MONSTER, enemy.name, enemy.hp_from(stage.enemy_hp)])
 	if stage.oak_count > 0:
 		targets.append([Stats.OAK, "木", stage.oak_hp])
-	targets.append([Stats.SLIME, "ボス", stage.boss_hp])
+	var boss := Progress.enemy(stage.boss)
+	if boss != null:
+		targets.append([Stats.MONSTER, "ボス", boss.hp_from(stage.boss_hp)])
 	return targets
 
 

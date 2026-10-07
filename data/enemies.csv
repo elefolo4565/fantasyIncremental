@@ -1,0 +1,4 @@
+id,name,move,size,hp_rate,gem_rate,speed_rate,contact_damage,golden,model,color,angry_color,memo
+slime,スライム,wander_chase,34,1,1,1,1,1,slime,4dc7ff,ff739e,ふつうのスライム。うろつき、近づくと追ってくる（怒り顔）。魔導樹の「黄金スライム」で金色になるのはこれだけ（golden=1）
+dasher,突進スライム,dash,34,1,1,1,1,0,dasher,ff9e33,fff24d,頭に角。近づくと止まって力をため（怒り顔・向きの線）、まっすぐ突進して休む
+king_slime,スライムの王,chase,64.6,1,1,1,1,0,king,9e6bff,9e6bff,平原と森のボス。いつも追ってくる。耐久・宝石・速さは stages.csv の boss_hp・boss_gem・boss_speed に掛ける
