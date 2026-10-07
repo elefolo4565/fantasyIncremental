@@ -4,7 +4,7 @@ extends Node2D
 ## 倒した物は素材（Pickup）を落とし、プレイヤーが近づいて拾ったぶんだけ手に入る。クリアしたときは落ちている素材も全部手に入る。
 ## 砕裂（Shatter）・残響（Echo）もここで扱う。
 ## 魔導樹の生命・収益の軸のうち、ランの中で効くもの（時の雫・豊穣・懸賞・黄金スライム・連鎖収穫・大地の吸引・遺品）もここで扱う。
-## モンスター（Slime）は稼ぎの元であり脅威でもある。触れると体力が減り、体力が 0 になるとそこでランが終わる。
+## モンスター（Monster。種類は stages.csv の enemies と data/enemies.csv）は稼ぎの元であり脅威でもある。触れると体力が減り、体力が 0 になるとそこでランが終わる。
 ## クリア・時間切れ・やられたら結果を表示し、戻るボタンで finished、「もう一度」で retry_requested を出す。
 ## 平原の2面からは草地（Grass）を置く。数は stages.csv の grass × Progress.grass_scale。
 ## 残り時間が time_warning_seconds 以下になると、残り時間の数字が赤く脈打ち、画面の縁が赤く光り、秒ごとに時計の音が鳴る。
@@ -15,9 +15,7 @@ signal finished
 signal retry_requested(stage_index: int)
 
 const PLAYER_SCENE := preload("res://scenes/player/player.tscn")
-const SLIME_SCENE := preload("res://scenes/slime/slime.tscn")
-const DASHER_SCENE := preload("res://scenes/dasher/dasher.tscn")
-const BOSS_SCENE := preload("res://scenes/boss/boss.tscn")
+const MONSTER_SCENE := preload("res://scenes/monster/monster.tscn")
 const PICKUP_SCENE := preload("res://scenes/pickup/pickup.tscn")
 const OAK_SCENE := preload("res://scenes/oak/oak.tscn")
 const BOLT_SCENE := preload("res://scenes/bolt/bolt.tscn")
@@ -41,8 +39,6 @@ const TILE_SIZE := 64.0
 const SHAKE_DECAY := 30.0
 const SHAKE_ON_BREAK := 5.0
 const SHAKE_ON_HURT := 10.0
-const SLIME_DEBRIS := Color(0.3, 0.78, 1.0)
-const BOSS_DEBRIS := Boss.KING_COLOR
 const BOSS_SPAWN_TRIES := 30
 const OAK_DEBRIS := Color(0.4, 0.7, 0.35)
 const GEM_COLOR := Color(1.0, 0.55, 0.95)
@@ -91,7 +87,7 @@ var _over := false
 var _defeated := false
 var _cleared := false
 var _unlocked := false
-var _boss: Boss
+var _boss: Monster
 var _boss_called := false
 var _last_contact_damage := 0
 ## ランが始まってからの時間（秒）。連鎖収穫で使う
@@ -162,12 +158,14 @@ func _ready() -> void:
 	_plan_grass(area)
 	_apply_grass()
 	var taken: Array[Vector2] = [_player.position]
-	for _i in _stage.slime_count:
-		_spawn(SLIME_SCENE, _stage.slime_hp, _stage.slime_gem, area, taken)
-	for _i in _stage.dasher_count:
-		_spawn(DASHER_SCENE, _stage.slime_hp, _stage.slime_gem, area, taken)
+	for entry in _stage.enemies:
+		var enemy := Progress.enemy(entry[0])
+		if enemy == null:
+			continue
+		for _i in entry[1]:
+			_spawn_monster(enemy, area, taken)
 	for _i in _stage.oak_count:
-		_spawn(OAK_SCENE, _stage.oak_hp, _stage.oak_wood, area, taken)
+		_spawn(OAK_SCENE.instantiate() as Breakable, _stage.oak_hp, _stage.oak_wood, area, taken)
 	_build_size_tuner()
 	_stick.tap_mode = Progress.tap_move
 	_stick.blockers = [_size_button, _size_panel, _result_panel]
@@ -419,10 +417,10 @@ func _on_player_died() -> void:
 	_finish()
 
 
-func _on_slime_touched(slime: Slime) -> void:
+func _on_monster_touched(monster: Monster) -> void:
 	if not _over:
-		_last_contact_damage = slime.contact_damage
-		_player.take_damage(slime.contact_damage, slime.global_position)
+		_last_contact_damage = monster.contact_damage
+		_player.take_damage(monster.contact_damage, monster.global_position)
 
 
 func _draw() -> void:
@@ -447,8 +445,7 @@ func _draw() -> void:
 			draw_line(spot, spot + Vector2(5, -11), decor, 4.0)
 
 
-func _spawn(scene: PackedScene, base_hp: int, reward: int, area: Vector2, taken: Array[Vector2]) -> void:
-	var target := scene.instantiate() as Breakable
+func _spawn(target: Breakable, base_hp: int, reward: int, area: Vector2, taken: Array[Vector2]) -> void:
 	target.base_hp = base_hp
 	target.reward = reward
 	target.position = _find_free_spot(area, taken)
@@ -456,15 +453,24 @@ func _spawn(scene: PackedScene, base_hp: int, reward: int, area: Vector2, taken:
 	taken.append(target.position)
 	target.broken.connect(_on_broken)
 	target.damaged.connect(_on_damaged)
-	var slime := target as Slime
-	if slime != null:
-		slime.target = _player
-		slime.speed = _stage.slime_speed
-		slime.contact_damage = Balance.get_int("slime_contact_damage")
-		slime.touched_player.connect(_on_slime_touched)
-	if scene == SLIME_SCENE:
-		slime.golden_chance = Stats.effect(&"golden", Progress.levels) / 100.0
 	_world.add_child(target)
+
+
+## 敵を1体出す。耐久・宝石・速さはステージの基準に、敵ごとの倍率を掛ける。
+func _spawn_monster(enemy: EnemyDef, area: Vector2, taken: Array[Vector2]) -> void:
+	var monster := _new_monster(enemy, _stage.enemy_speed)
+	monster.golden_chance = Stats.effect(&"golden", Progress.levels) / 100.0
+	_spawn(monster, enemy.hp_from(_stage.enemy_hp), enemy.gem_from(_stage.enemy_gem), area, taken)
+
+
+func _new_monster(enemy: EnemyDef, base_speed: float) -> Monster:
+	var monster := MONSTER_SCENE.instantiate() as Monster
+	monster.def = enemy
+	monster.target = _player
+	monster.speed = enemy.speed_from(base_speed)
+	monster.contact_damage = enemy.contact_damage
+	monster.touched_player.connect(_on_monster_touched)
+	return monster
 
 
 ## プレイヤーからなるべく離れた場所にボスを出す。
@@ -478,17 +484,17 @@ func _spawn_boss() -> void:
 		if distance > best_distance:
 			spot = candidate
 			best_distance = distance
-	_boss = BOSS_SCENE.instantiate() as Boss
-	_boss.base_hp = _stage.boss_hp
-	_boss.reward = Stats.boss_reward(_stage.boss_gem, Progress.levels)
+	var enemy := Progress.enemy(_stage.boss)
+	if enemy == null:
+		return
+	_boss = _new_monster(enemy, _stage.boss_speed)
+	_boss.is_boss = true
+	_boss.base_hp = enemy.hp_from(_stage.boss_hp)
+	_boss.reward = Stats.boss_reward(enemy.gem_from(_stage.boss_gem), Progress.levels)
 	_boss.position = spot
 	_boss.scale = Vector2.ONE * Progress.unit_scale
-	_boss.target = _player
-	_boss.speed = _stage.boss_speed
-	_boss.contact_damage = Balance.get_int("boss_contact_damage")
 	_boss.broken.connect(_on_broken)
 	_boss.damaged.connect(_on_damaged)
-	_boss.touched_player.connect(_on_slime_touched)
 	_world.add_child(_boss)
 	Sfx.play(&"ring")
 	Bgm.play(&"boss")
@@ -528,11 +534,11 @@ func _on_broken(target: Breakable) -> void:
 	if not is_boss:
 		_broken_count += 1
 	_shake = maxf(_shake, SHAKE_ON_BREAK * (2.0 if is_boss else 1.0))
-	var is_slime := target.kind() == Stats.SLIME
+	var monster := target as Monster
 
 	var shatter := roundi(Stats.effect(&"shatter", Progress.levels))
 	var debris := DEBRIS_SCENE.instantiate() as Debris
-	debris.color = BOSS_DEBRIS if is_boss else (SLIME_DEBRIS if is_slime else OAK_DEBRIS)
+	debris.color = monster.def.color if monster != null else OAK_DEBRIS
 	debris.wave_radius = Balance.get_float("shatter_radius") if shatter > 0 else 0.0
 	debris.position = at
 	_world.add_child(debris)
@@ -542,7 +548,7 @@ func _on_broken(target: Breakable) -> void:
 		_add_materials(Pickup.GEM, target.reward, at)
 		_on_boss_defeated()
 		return
-	_drop(Pickup.GEM if is_slime else Pickup.WOOD, _reward_for(target), at)
+	_drop(Pickup.GEM if monster != null else Pickup.WOOD, _reward_for(target), at)
 	_last_kill_at = _elapsed
 	_time_left += Stats.effect(&"time_drop", Progress.levels)
 	if shatter > 0:
@@ -558,10 +564,10 @@ func _on_broken(target: Breakable) -> void:
 ## 倒した敵（ボス以外）が落とす素材の数。豊穣・黄金スライム・連鎖収穫で増える。
 func _reward_for(target: Breakable) -> int:
 	var amount := Stats.drop_amount(target.reward, Progress.levels)
-	var slime := target as Slime
-	if slime != null and slime.golden:
+	var monster := target as Monster
+	if monster != null and monster.golden:
 		amount *= maxi(Balance.get_int("golden_multiplier"), 1)
-	if target.kind() == Stats.SLIME and _elapsed - _last_kill_at <= Balance.get_float("chain_window"):
+	if monster != null and _elapsed - _last_kill_at <= Balance.get_float("chain_window"):
 		amount += roundi(Stats.effect(&"chain", Progress.levels))
 	return amount
 

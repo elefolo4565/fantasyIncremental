@@ -17,7 +17,7 @@
 
 ```
 data/                 調整用の数値（CSV）。人が直接編集する
-scenes/<名前>/        1つのシーンと、そのスクリプトを同じフォルダに置く（例: scenes/slime/slime.tscn, slime.gd）
+scenes/<名前>/        1つのシーンと、そのスクリプトを同じフォルダに置く（例: scenes/monster/monster.tscn, monster.gd）
 scripts/autoload/     オートロード（Balance・Progress・Sfx・Bgm）
 assets/sprites/       絵（プレイヤーと敵は3Dモデルから焼いた8方向の絵。焼き直しは tools/render_player/README.md・tools/render_enemies/README.md）
 assets/audio/         BGM と効果音（魔王魂。クレジットと出どころは assets/audio/README.md。公開リポジトリなので再配布できる素材だけ置く）
@@ -43,6 +43,9 @@ tools/                開発用の道具（書き出しに含めない）
 - 変数・引数・戻り値には型を付ける（`var speed := 0.0`、`func take_hit(damage: int) -> void:`）。
 - **シーンは小さく、1つの役割だけ**を持たせる。シーン同士は `signal` でつなぎ、親が子を直接操作する方向にする（子から `get_parent()` で親をいじらない。生成した弾を同じ階層に足す程度は可）。
 - 壊せる物（モンスター・木など）は基底クラス `Breakable` を継承し、グループ `Breakable.GROUP`（`&"breakable"`）に入れる。
+- 敵は最終的に100種ほどになる予定なので、**敵ごとにシーンやスクリプトを作らない**（2026-10-07 ユーザー合意）。
+  敵の種類は `data/enemies.csv` の1行、どのステージに何体出すかは `data/stages.csv` の `enemies` 列。動きは `scenes/monster/moves/` の部品（`MonsterMove`）を `move` 列で選ぶ。
+  新しい動きが要るときだけ部品を1つ足す。絵は `tools/render_enemies` で表から焼く（手順は tools/render_enemies/README.md）。
 - スクリプト先頭に `##` で「このシーンは何をするか」を1〜3行で書く。
 - 画面の文字は日本語でよい。フォントは `assets/fonts/MPLUSRounded1c-ExtraBold-subset.ttf`（OFL。`scenes/main/main.gd` で既定テーマの `default_font` と `ThemeDB.fallback_font` に設定している。PC では OS のフォントで補われて気づけないので、Web で文字化けしていないか確かめる。`gui/theme/custom_font` は CI の初回インポートでエラーになるので使わない）。
   ASCII・かな・記号・JIS第1水準の漢字だけに絞ってあるので、第2水準の漢字（例: 「呪」「贄」など）を使うと表示されない。使いたいときは元のフォントから作り直す。

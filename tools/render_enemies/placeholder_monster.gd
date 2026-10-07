@@ -1,5 +1,5 @@
 extends Node3D
-## 仮の敵の3Dモデル（スライム・突進スライム・ボス・森の木）。Godot の基本図形だけで組み立てる。
+## 仮の敵の3Dモデル（スライム・突進スライム・王冠のスライム・森の木）。形は data/enemies.csv の model 列で選ぶ。Godot の基本図形だけで組み立てる。
 ## render_enemies が絵に焼くときに使う。本番のモデルができたら assets/models/<名前>.glb に置けば、こちらは使われない。
 ## 足元が原点、正面が +Z。set_walk(0〜1) で跳ねる動きの1周のどこかの姿勢にする。
 
@@ -15,7 +15,7 @@ const SLIME_HEIGHT := 0.82
 
 ## 生成する側が add_child の前に入れる
 var body_color := Color(0.3, 0.78, 1.0)
-## &"slime" / &"dasher" / &"boss" / &"oak"
+## &"slime" / &"dasher" / &"king"（王冠） / &"oak"
 var shape := &"slime"
 ## 怒った眉（追ってきているとき）
 var angry := false
@@ -68,7 +68,7 @@ func _build_slime() -> void:
 		horn.bottom_radius = 0.13
 		horn.height = 0.38
 		_part(horn, HORN_COLOR, Vector3(0, center_y * 2.0 + 0.08, 0.05), Vector3.ONE, _body)
-	elif shape == &"boss":
+	elif shape == &"king":
 		_build_crown(center_y * 2.0 - 0.06)
 
 

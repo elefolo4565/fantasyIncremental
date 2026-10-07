@@ -3,7 +3,8 @@ extends RefCounted
 ## 強化の段から戦闘の数値（ダメージ・耐久・あと何発で壊れるか）を計算する。
 ## levels を差し替えれば「この強化を買ったら何発になるか」も同じ式で計算できる。
 
-const SLIME := &"slime"
+## 壊せる物の種類（Breakable.kind）。敵はみな MONSTER
+const MONSTER := &"monster"
 const OAK := &"oak"
 
 
