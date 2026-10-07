@@ -48,6 +48,8 @@ tools/                開発用の道具（書き出しに含めない）
   弾を撃つ敵は `shot` 列で `data/shots.csv` の1行（弾の種類・狙い・発射数・向き・撃ち方）を選ぶ。撃つ処理は `scenes/monster/monster_shooter.gd`、弾は `scenes/enemy_shot/`。
   新しい動きが要るときだけ部品を1つ足す。絵は `tools/render_enemies` で表から焼く（手順は tools/render_enemies/README.md）。
   敵の数値はゲームの中の開発用の敵エディタ（`scenes/enemy_editor`、魔導樹の画面の左下）でも触れる。ユーザーがエディタの「CSVをコピー」で貼ってきた表は、そのまま `data/enemies.csv` に反映し、絵を焼き直してPRにする。
+- ステージは `data/stages.csv` の1行1ステージ（上から順に解放）。出てくる敵と数（`enemies`）・湧き直す秒数（`respawn_time`）・ボス・世界・草地や木は、開発用のステージエディタ（`scenes/stage_editor`、魔導樹の画面の左下）でも触れ、そこから試遊できる（試遊の素材や解放は残さない）。
+  ユーザーがステージエディタの「CSVをコピー」で貼ってきた表は、そのまま `data/stages.csv` に反映してPRにする。
 - スクリプト先頭に `##` で「このシーンは何をするか」を1〜3行で書く。
 - 画面の文字は日本語でよい。フォントは `assets/fonts/MPLUSRounded1c-ExtraBold-subset.ttf`（OFL。`scenes/main/main.gd` で既定テーマの `default_font` と `ThemeDB.fallback_font` に設定している。PC では OS のフォントで補われて気づけないので、Web で文字化けしていないか確かめる。`gui/theme/custom_font` は CI の初回インポートでエラーになるので使わない）。
   ASCII・かな・記号・JIS第1水準の漢字だけに絞ってあるので、第2水準の漢字（例: 「呪」「贄」など）を使うと表示されない。使いたいときは元のフォントから作り直す。

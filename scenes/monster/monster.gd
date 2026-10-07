@@ -35,6 +35,8 @@ var speed := 0.0
 var contact_damage := 1
 ## ボスは湧き直さない
 var is_boss := false
+## 倒されてから湧き直すまでの秒数（ステージの respawn_time）。0 未満なら balance.csv の slime_respawn_time
+var respawn_delay := -1.0
 ## 湧くたびに金色になる確率（0〜1）
 var golden_chance := 0.0
 var golden := false
@@ -69,7 +71,7 @@ func radius() -> float:
 
 
 func respawn_time() -> float:
-	return Balance.get_float("slime_respawn_time")
+	return respawn_delay if respawn_delay >= 0.0 else Balance.get_float("slime_respawn_time")
 
 
 ## 大きい敵（ボス）は頭の上の余白もその分だけ広げる。

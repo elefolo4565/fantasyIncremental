@@ -15,7 +15,7 @@ twin_spread,14,狙う相手が足りないとき、追加の魔法弾をずら�
 focus_every,3,集中（Focus）で何発ごとに強い1発になるか（発）
 focus_multiplier,2,集中の1発のダメージ倍率（倍）
 shatter_radius,150,砕裂（Shatter）で壊れた物が周りにダメージを与える範囲（ピクセル）
-slime_respawn_time,3,倒したスライムが別の場所に湧き直すまでの時間（秒）
+slime_respawn_time,3,倒した敵が別の場所に湧き直すまでの時間（秒）。stages.csv の respawn_time が空のステージで使う
 oak_respawn_time,4,壊れた木が復活するまでの時間（秒）
 oak_regen_delay,1.5,森の木が最後に攻撃されてから耐久が戻り始めるまでの時間（秒）
 oak_regen_interval,0.5,森の木の耐久が1戻る間隔（秒）

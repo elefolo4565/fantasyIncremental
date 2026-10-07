@@ -2,6 +2,7 @@ class_name StageDef
 extends RefCounted
 ## 1ステージ分の定義（data/stages.csv の1行）。
 ## 出てくる敵は enemies に「敵のid:数」を | でつないで書く（例: slime:7|dasher:1）。敵の種類は data/enemies.csv。
+## ステージエディタ（scenes/stage_editor）でも変えられる。
 
 var id: StringName
 var name := ""
@@ -24,6 +25,9 @@ var boss_gem := 0
 var boss_speed := 0.0
 ## 草地の数（平原のギミック）
 var grass := 0
+## 倒した敵（ボス以外）が湧き直すまでの秒数。空なら balance.csv の slime_respawn_time
+var respawn_time := 0.0
+var memo := ""
 
 
 static func from_row(row: Dictionary) -> StageDef:
@@ -44,7 +48,34 @@ static func from_row(row: Dictionary) -> StageDef:
 	def.boss_gem = String(row.get("boss_gem", "0")).to_int()
 	def.boss_speed = String(row.get("boss_speed", "0")).to_float()
 	def.grass = String(row.get("grass", "0")).to_int()
+	var respawn := String(row.get("respawn_time", "")).strip_edges()
+	def.respawn_time = respawn.to_float() if not respawn.is_empty() else Balance.get_float("slime_respawn_time")
+	def.memo = row.get("memo", "")
 	return def
+
+
+## stages.csv の1行に戻す（ステージエディタが書き出すとき）。
+func to_row() -> Dictionary:
+	return {
+		"id": String(id), "name": name, "world": String(world), "enemies": enemies_text(),
+		"enemy_hp": str(enemy_hp), "enemy_gem": str(enemy_gem), "enemy_speed": EnemyDef._num(enemy_speed),
+		"oak_count": str(oak_count), "oak_hp": str(oak_hp), "oak_wood": str(oak_wood),
+		"boss": String(boss), "boss_after": str(boss_after), "boss_hp": str(boss_hp), "boss_gem": str(boss_gem),
+		"boss_speed": EnemyDef._num(boss_speed), "grass": str(grass), "respawn_time": EnemyDef._num(respawn_time),
+		"memo": memo,
+	}
+
+
+func copy() -> StageDef:
+	return StageDef.from_row(to_row())
+
+
+## [[&"slime", 7], [&"dasher", 1]] → "slime:7|dasher:1"
+func enemies_text() -> String:
+	var parts := PackedStringArray()
+	for entry in enemies:
+		parts.append("%s:%d" % [entry[0], entry[1]])
+	return "|".join(parts)
 
 
 ## "slime:7|dasher:1" → [[&"slime", 7], [&"dasher", 1]]。数を省くと1。
