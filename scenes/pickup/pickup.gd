@@ -11,6 +11,8 @@ const GEM_COLOR := Color(1.0, 0.55, 0.95)
 const WOOD_COLOR := Color(0.78, 0.52, 0.28)
 const WOOD_RING := Color(0.98, 0.82, 0.55)
 const SIZE := 13.0
+## 黒い縁取りの太さ（ピクセル。見た目だけ）
+const OUTLINE_WIDTH := 2.0
 const BOB_SPEED := 5.0
 const BOB_HEIGHT := 4.0
 const SCATTER := 28.0
@@ -62,10 +64,10 @@ func _draw() -> void:
 	if kind == GEM:
 		var points := PackedVector2Array([at + Vector2(0, -SIZE), at + Vector2(SIZE * 0.75, 0),
 				at + Vector2(0, SIZE * 0.8), at + Vector2(-SIZE * 0.75, 0)])
-		Toon.polygon(self, points, GEM_COLOR)
+		Toon.polygon(self, points, GEM_COLOR, OUTLINE_WIDTH)
 		Toon.highlight(self, at + Vector2(-3, -4), Vector2(3, 2))
 	else:
 		var wood_log := Rect2(at - Vector2(SIZE, SIZE * 0.5), Vector2(SIZE * 2.0, SIZE))
-		draw_rect(wood_log.grow(Toon.OUTLINE_WIDTH), Toon.OUTLINE)
+		draw_rect(wood_log.grow(OUTLINE_WIDTH), Toon.OUTLINE)
 		draw_rect(wood_log, WOOD_COLOR)
 		draw_circle(at + Vector2(SIZE, 0), SIZE * 0.5, WOOD_RING)
