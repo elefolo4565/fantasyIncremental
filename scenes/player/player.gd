@@ -57,7 +57,7 @@ func _ready() -> void:
 	_revives = 1 if Stats.effect(&"revive", Progress.levels) > 0.0 else 0
 
 
-## 見た目と当たり判定の大きさを変える（子の精霊の輪は変えない）。
+## 見た目と当たり判定の大きさを変える。
 func set_body_scale(value: float) -> void:
 	_body_scale = value
 	_shape.scale = Vector2.ONE * value
