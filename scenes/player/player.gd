@@ -4,10 +4,15 @@ extends CharacterBody2D
 ## 魔導樹の Twin Bolt で1度に撃つ数が増え、Focus で数発ごとに強い1発になる。
 ## モンスターに触れると体力が減り、少しのあいだ無敵になって弾き飛ばされる。体力が 0 になると died を出す。
 ## 草地（Grass）の中では移動が遅くなる。
+## 体力・無敵時間・移動速度は魔導樹の生命の軸で伸びる。身代わりの盾で被弾を防ぎ、再起で1度だけ立ち上がる。
 ## tuning が true のあいだ（大きさの調整中）は無敵で、攻撃もしない。
 
 signal hurt
 signal died
+## 身代わりの盾で被弾を防いだ
+signal shielded
+## 再起で立ち上がった
+signal revived
 
 const BOLT_SCENE := preload("res://scenes/bolt/bolt.tscn")
 const RADIUS := 20.0
@@ -39,13 +44,17 @@ var _walk := 0.0
 var _moving := false
 var _shot_count := 0
 var _body_scale := 1.0
+var _shields := 0
+var _revives := 0
 
 @onready var _shape: CollisionShape2D = $CollisionShape2D
 
 
 func _ready() -> void:
-	max_hp = maxi(Balance.get_int("player_hp"), 1)
+	max_hp = Stats.player_hp(Progress.levels)
 	hp = max_hp
+	_shields = roundi(Stats.effect(&"guardian", Progress.levels))
+	_revives = 1 if Stats.effect(&"revive", Progress.levels) > 0.0 else 0
 
 
 ## 見た目と当たり判定の大きさを変える（子の精霊の輪は変えない）。
@@ -63,12 +72,20 @@ func is_alive() -> bool:
 func take_damage(amount: int, from: Vector2) -> void:
 	if hp <= 0 or _invincible > 0.0 or tuning:
 		return
-	hp = maxi(hp - amount, 0)
-	_invincible = Balance.get_float("player_invincible_time")
+	_invincible = Stats.invincible_time(Progress.levels)
 	_knockback = from.direction_to(global_position) * Balance.get_float("player_knockback")
 	queue_redraw()
+	if _shields > 0:
+		_shields -= 1
+		shielded.emit()
+		return
+	hp = maxi(hp - amount, 0)
 	hurt.emit()
-	if hp <= 0:
+	if hp <= 0 and _revives > 0:
+		_revives -= 1
+		hp = mini(maxi(roundi(Stats.effect(&"revive", Progress.levels)), 1), max_hp)
+		revived.emit()
+	elif hp <= 0:
 		died.emit()
 
 
@@ -86,7 +103,7 @@ func _physics_process(delta: float) -> void:
 		_walk += delta * 14.0
 		queue_redraw()
 	var grass_rate := Grass.rate_at(get_tree(), global_position, Balance.get_float("grass_player_speed_rate"))
-	velocity = move * Balance.get_float("player_speed") * grass_rate + _knockback
+	velocity = move * Stats.player_speed(Progress.levels) * grass_rate + _knockback
 	move_and_slide()
 	var area := get_viewport_rect().size
 	var margin := Vector2.ONE * RADIUS * _body_scale
@@ -100,7 +117,7 @@ func _physics_process(delta: float) -> void:
 		var targets := _find_targets(bolt_count)
 		if not targets.is_empty():
 			_fire_volley(targets, bolt_count)
-			_fire_cooldown = Stats.fire_interval(Progress.levels)
+			_fire_cooldown = Stats.fire_interval_at(hp, Progress.levels)
 
 
 func _draw() -> void:

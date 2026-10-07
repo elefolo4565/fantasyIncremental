@@ -3,6 +3,7 @@ extends Node2D
 ## 1回のラン（1ステージ）。物を置いて制限時間を数え、決まった数を倒すとボスが出る。ボスを倒せばクリア（次のステージが解放される）。
 ## 倒した物は素材（Pickup）を落とし、プレイヤーが近づいて拾ったぶんだけ手に入る。クリアしたときは落ちている素材も全部手に入る。
 ## 砕裂（Shatter）・残響（Echo）・精霊の輪のレベルアップもここで扱う。
+## 魔導樹の生命・収益の軸のうち、ランの中で効くもの（時の雫・豊穣・懸賞・黄金スライム・連鎖収穫・大地の吸引・遺品）もここで扱う。
 ## モンスター（Slime）は稼ぎの元であり脅威でもある。触れると体力が減り、体力が 0 になるとそこでランが終わる。
 ## クリア・時間切れ・やられたら結果を表示し、戻るボタンで finished、「もう一度」で retry_requested を出す。
 ## 平原の2面からは草地（Grass）を置く。数は stages.csv の grass × Progress.grass_scale。
@@ -46,6 +47,8 @@ const OAK_DEBRIS := Color(0.4, 0.7, 0.35)
 const GEM_COLOR := Color(1.0, 0.55, 0.95)
 const HURT_COLOR := Color(1.0, 0.4, 0.35)
 const WOOD_COLOR := Color(0.95, 0.75, 0.45)
+const GUARD_COLOR := Color(0.6, 0.9, 1.0)
+const REVIVE_COLOR := Color(0.45, 1.0, 0.55)
 const DECOR_COUNT := 60
 const DAMAGE_COLOR := Color(1, 1, 1)
 const DAMAGE_SIZE := 24
@@ -80,6 +83,11 @@ var _unlocked := false
 var _boss: Boss
 var _boss_called := false
 var _last_contact_damage := 0
+## ランが始まってからの時間（秒）。連鎖収穫で使う
+var _elapsed := 0.0
+var _last_kill_at := -INF
+var _vacuum_wait := 0.0
+var _kept := 0
 var _player: Player
 var _ring: SpiritRing
 var _decor: Array[Vector2] = []
@@ -127,6 +135,8 @@ func _ready() -> void:
 	_player.stick = _stick
 	_player.hurt.connect(_on_player_hurt)
 	_player.died.connect(_on_player_died)
+	_player.shielded.connect(_on_player_shielded)
+	_player.revived.connect(_on_player_revived)
 	_world.add_child(_player)
 	_player.set_body_scale(_player_scale())
 	_ring = RING_SCENE.instantiate() as SpiritRing
@@ -328,7 +338,9 @@ func _process(delta: float) -> void:
 	position = Vector2(randf_range(-_shake, _shake), randf_range(-_shake, _shake))
 	if _over or _tuning:
 		return
+	_elapsed += delta
 	_time_left = maxf(_time_left - delta, 0.0)
+	_tick_vacuum(delta)
 	if _time_left <= 0.0:
 		_finish()
 	_update_hud()
@@ -339,6 +351,30 @@ func _on_player_hurt() -> void:
 	_shake = SHAKE_ON_HURT
 	_popup(_player.global_position + Vector2(0, -30), "-%d" % _last_contact_damage, HURT_COLOR, 30)
 	_update_hud()
+
+
+func _on_player_shielded() -> void:
+	Sfx.play(&"ring")
+	_popup(_player.global_position + Vector2(0, -30), "防いだ！", GUARD_COLOR, 30)
+
+
+func _on_player_revived() -> void:
+	Sfx.play(&"ring")
+	_popup(_player.global_position + Vector2(0, -30), "再起！", REVIVE_COLOR, 34)
+	_update_hud()
+
+
+## 大地の吸引: 決まった間隔で、落ちている素材を全部吸い寄せる。
+func _tick_vacuum(delta: float) -> void:
+	var interval := Stats.effect(&"vacuum", Progress.levels)
+	if interval <= 0.0:
+		return
+	_vacuum_wait += delta
+	if _vacuum_wait < interval:
+		return
+	_vacuum_wait = 0.0
+	for pickup in _lying_pickups():
+		pickup.pull()
 
 
 func _on_player_died() -> void:
@@ -391,6 +427,8 @@ func _spawn(scene: PackedScene, base_hp: int, reward: int, area: Vector2, taken:
 		slime.speed = _stage.slime_speed
 		slime.contact_damage = Balance.get_int("slime_contact_damage")
 		slime.touched_player.connect(_on_slime_touched)
+	if scene == SLIME_SCENE:
+		slime.golden_chance = Stats.effect(&"golden", Progress.levels) / 100.0
 	_world.add_child(target)
 
 
@@ -407,7 +445,7 @@ func _spawn_boss() -> void:
 			best_distance = distance
 	_boss = BOSS_SCENE.instantiate() as Boss
 	_boss.base_hp = _stage.boss_hp
-	_boss.reward = _stage.boss_gem
+	_boss.reward = Stats.boss_reward(_stage.boss_gem, Progress.levels)
 	_boss.position = spot
 	_boss.scale = Vector2.ONE * Progress.unit_scale
 	_boss.target = _player
@@ -469,7 +507,9 @@ func _on_broken(target: Breakable) -> void:
 		_add_materials(Pickup.GEM, target.reward, at)
 		_on_boss_defeated()
 		return
-	_drop(Pickup.GEM if is_slime else Pickup.WOOD, target.reward, at)
+	_drop(Pickup.GEM if is_slime else Pickup.WOOD, _reward_for(target), at)
+	_last_kill_at = _elapsed
+	_time_left += Stats.effect(&"time_drop", Progress.levels)
 	if shatter > 0:
 		get_tree().create_timer(SHATTER_DELAY).timeout.connect(_shatter.bind(at, shatter))
 	for _i in roundi(Stats.effect(&"echo", Progress.levels)):
@@ -479,6 +519,17 @@ func _on_broken(target: Breakable) -> void:
 	if not _boss_called and _broken_count >= _stage.boss_after:
 		_boss_called = true
 		_spawn_boss.call_deferred()
+
+
+## 倒した敵（ボス以外）が落とす素材の数。豊穣・黄金スライム・連鎖収穫で増える。
+func _reward_for(target: Breakable) -> int:
+	var amount := Stats.drop_amount(target.reward, Progress.levels)
+	var slime := target as Slime
+	if slime != null and slime.golden:
+		amount *= maxi(Balance.get_int("golden_multiplier"), 1)
+	if target.kind() == Stats.SLIME and _elapsed - _last_kill_at <= Balance.get_float("chain_window"):
+		amount += roundi(Stats.effect(&"chain", Progress.levels))
+	return amount
 
 
 ## 倒した場所に素材を落とす。拾ったときに _on_collected で手に入る。
@@ -612,6 +663,8 @@ func _finish() -> void:
 	_world.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
 	_stick.visible = false
 	_banner.visible = false
+	if not _cleared:
+		_keep_loot()
 	Progress.save()
 	if not _cleared:
 		Sfx.play(&"timeup")
@@ -628,6 +681,9 @@ func _finish() -> void:
 	var missed := 0
 	for pickup in _lying_pickups():
 		missed += pickup.amount
+	missed -= _kept
+	if _kept > 0:
+		lines.append("遺品で持ち帰った素材: %d" % _kept)
 	if missed > 0:
 		lines.append("拾えなかった素材: %d" % missed)
 	if _unlocked:
@@ -641,6 +697,22 @@ func _finish() -> void:
 	_result_body.text = "\n".join(lines)
 	_result_panel.visible = true
 	_update_hud()
+
+
+## 遺品: クリア以外で終わったとき、落ちたままの素材の一部を持ち帰る（種類ごとに端数は切り捨て）。
+func _keep_loot() -> void:
+	var rate := Stats.effect(&"keep_loot", Progress.levels) / 100.0
+	if rate <= 0.0:
+		return
+	var lying := {Pickup.GEM: 0, Pickup.WOOD: 0}
+	for pickup in _lying_pickups():
+		lying[pickup.kind] = int(lying.get(pickup.kind, 0)) + pickup.amount
+	var gem := floori(int(lying[Pickup.GEM]) * rate)
+	var wood := floori(int(lying[Pickup.WOOD]) * rate)
+	_gained_gem += gem
+	_gained_wood += wood
+	_kept = gem + wood
+	Progress.add_materials(gem, wood)
 
 
 func _update_hud() -> void:

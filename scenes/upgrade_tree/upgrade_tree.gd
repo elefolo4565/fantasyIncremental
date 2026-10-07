@@ -1,14 +1,27 @@
 class_name UpgradeTree
 extends Control
-## 魔導樹の画面。強化ノードを並べ、選んだノードの説明・費用と「何発で壊れるか」の変化を見せて買えるようにする。
+## 魔導樹の画面。中央の核から攻撃・生命・収益の3軸が放射状に伸び、強化ノードが並ぶ。
+## 選んだノードの説明・費用と、活動時間などの数値の変化を見せて買えるようにする。
 ## ステージを選んで START を押すと start_requested を出す。
 ## 魔導樹はピンチ（PC ではホイール）で拡大し、ドラッグで動かせる。
 ## 左下のボタンで、ランでの移動（スティック／タップ移動）と BGM のオン/オフを切り替える（設定は保存する）。
 
 signal start_requested(stage_index: int)
 
-const CELL_SIZE := Vector2(126, 112)
-const NODE_SIZE := Vector2(116, 64)
+## 中心からノード1段ぶんの距離
+const RING_SPACING := 125.0
+const NODE_SIZE := Vector2(100, 56)
+const TREE_MARGIN := 24.0
+const CORE_RADIUS := 30.0
+const CORE_COLOR := Color(0.95, 0.97, 1.0)
+## 軸ごとの [向き（度、右が0で時計回り）, 色, 名前]
+const AXES := {
+	&"attack": [-90.0, Color(1.0, 0.48, 0.27), "攻撃"],
+	&"life": [150.0, Color(0.31, 0.85, 0.48), "生命"],
+	&"income": [30.0, Color(1.0, 0.8, 0.2), "収益"],
+}
+const AXIS_LABEL_SIZE := 30
+const RING_COLOR := Color(1, 1, 1, 0.12)
 const SIDE_WIDTH := 456.0
 const HEADER_HEIGHT := 64.0
 const FOOTER_HEIGHT := 56.0
@@ -25,19 +38,24 @@ const LOCKED_COLOR := Color(0.24, 0.27, 0.42)
 const LOCKED_TEXT := Color(0.62, 0.65, 0.78)
 const POP_COLOR := Color(1.0, 0.85, 0.3)
 const POP_TIME := 1.1
-const ZOOM_MIN := 1.0
-const ZOOM_MAX := 2.6
+const ZOOM_MAX := 2.2
 const WHEEL_ZOOM_STEP := 1.15
 ## これ以上指が動いたらドラッグとみなし、ノードを押したことにしない（画面上の点）
 const DRAG_THRESHOLD := 14.0
 
 var _buttons: Dictionary = {}
-var _tree_origin := Vector2.ZERO
+## 放射状の座標（核が原点）で、全ノードと軸の名前を囲む四角
+var _bounds := Rect2()
+var _max_ring := 1
 var _styles: Dictionary = {}
 var _selected: UpgradeDef
 var _reset_armed := false
 var _zoom := 1.0
-var _pan := Vector2.ZERO
+## 魔導樹の置き場所の真ん中に来る、魔導樹の中の点（拡大前）
+var _view_center := Vector2.ZERO
+var _view_ready := false
+## 魔導樹全体が置き場所に収まる拡大率（これより小さくはしない）
+var _zoom_min := 1.0
 var _touches: Dictionary = {}
 var _drag_distance := 0.0
 
@@ -64,12 +82,13 @@ var _drag_distance := 0.0
 func _ready() -> void:
 	for color: Color in [MAXED_COLOR, READY_COLOR, OPEN_COLOR, LOCKED_COLOR]:
 		_styles[color] = _make_style(color)
+	_compute_bounds()
 	for def in Progress.upgrades:
 		var button := Button.new()
 		button.size = NODE_SIZE
 		button.pivot_offset = NODE_SIZE * 0.5
 		button.focus_mode = Control.FOCUS_NONE
-		button.add_theme_font_size_override("font_size", 17)
+		button.add_theme_font_size_override("font_size", 15)
 		button.pressed.connect(_on_node_pressed.bind(def))
 		button.position = _cell_center(def) - NODE_SIZE * 0.5
 		_nodes.add_child(button)
@@ -122,24 +141,68 @@ func _draw() -> void:
 				Vector2(x + STRIPE_WIDTH - size.y, size.y), Vector2(x - size.y, size.y)]), STRIPE_COLOR)
 
 
-## ノード同士の線と選択枠。$TreeClip/Nodes の中に描くので、拡大・移動に一緒についてくる。
+## ノード同士の線・軸の名前・選択枠。$TreeClip/Nodes の中に描くので、拡大・移動に一緒についてくる。
 func _draw_links() -> void:
+	var core := _core()
+	for ring in range(1, _max_ring + 1):
+		_nodes.draw_arc(core, ring * RING_SPACING, 0.0, TAU, 96, RING_COLOR, 3.0)
+	var font := ThemeDB.fallback_font
+	for axis: StringName in AXES:
+		var at := core + _direction(axis, 0.0) * (_max_ring + 0.8) * RING_SPACING
+		var width := 160.0
+		var origin := at + Vector2(-width * 0.5, AXIS_LABEL_SIZE * 0.35)
+		_nodes.draw_string_outline(font, origin, AXES[axis][2], HORIZONTAL_ALIGNMENT_CENTER, width,
+				AXIS_LABEL_SIZE, 10, UiStyle.OUTLINE)
+		_nodes.draw_string(font, origin, AXES[axis][2], HORIZONTAL_ALIGNMENT_CENTER, width, AXIS_LABEL_SIZE,
+				AXES[axis][1])
 	for def in Progress.upgrades:
-		if def.parent == &"" or Progress.upgrade(def.parent) == null:
-			continue
-		var color := LINE_ON if Progress.is_unlocked(def) else LINE_OFF
-		var from := _cell_center(Progress.upgrade(def.parent))
+		var parent := Progress.upgrade(def.parent)
+		var from := core if parent == null else _cell_center(parent)
+		var color: Color = _axis_color(def) if Progress.is_unlocked(def) else LINE_OFF
 		_nodes.draw_line(from, _cell_center(def), UiStyle.OUTLINE, 14.0)
 		_nodes.draw_line(from, _cell_center(def), color, 7.0)
+	_nodes.draw_circle(core, CORE_RADIUS + 4.0, UiStyle.OUTLINE)
+	_nodes.draw_circle(core, CORE_RADIUS, CORE_COLOR)
 	if _selected != null:
 		var rect := Rect2(_cell_center(_selected) - NODE_SIZE * 0.5, NODE_SIZE).grow(6.0)
 		_nodes.draw_rect(rect.grow(3.0), UiStyle.OUTLINE, false, 4.0)
 		_nodes.draw_rect(rect, SELECT_COLOR, false, 4.0)
 
 
+func _axis_color(def: UpgradeDef) -> Color:
+	return AXES[def.axis][1] if AXES.has(def.axis) else LINE_ON
+
+
+## 軸の向きから degrees だけずらした向き。
+func _direction(axis: StringName, degrees: float) -> Vector2:
+	var base: float = AXES[axis][0] if AXES.has(axis) else 0.0
+	return Vector2.RIGHT.rotated(deg_to_rad(base + degrees))
+
+
+## 核を原点にしたノードの位置。
+func _radial(def: UpgradeDef) -> Vector2:
+	return _direction(def.axis, def.angle) * def.ring * RING_SPACING
+
+
+func _compute_bounds() -> void:
+	_bounds = Rect2(Vector2.ZERO, Vector2.ZERO).grow(CORE_RADIUS)
+	for def in Progress.upgrades:
+		_max_ring = maxi(_max_ring, def.ring)
+		_bounds = _bounds.merge(Rect2(_radial(def) - NODE_SIZE * 0.5, NODE_SIZE))
+	for axis: StringName in AXES:
+		var at := _direction(axis, 0.0) * (_max_ring + 0.8) * RING_SPACING
+		_bounds = _bounds.merge(Rect2(at - Vector2(80, AXIS_LABEL_SIZE), Vector2(160, AXIS_LABEL_SIZE * 2)))
+	_bounds = _bounds.grow(TREE_MARGIN)
+
+
+## 魔導樹の中での核の位置（拡大前）。
+func _core() -> Vector2:
+	return -_bounds.position
+
+
 ## 魔導樹の中での位置（拡大前）。
 func _cell_center(def: UpgradeDef) -> Vector2:
-	return Vector2(def.cell) * CELL_SIZE + CELL_SIZE * 0.5
+	return _radial(def) - _bounds.position
 
 
 ## 画面上の位置（拡大・移動後）。
@@ -151,19 +214,21 @@ func _make_style(color: Color) -> StyleBoxFlat:
 	return UiStyle.box(color, 12, 4, 5)
 
 
-## 魔導樹を、右の説明欄を除いた場所の真ん中に置く。
+## 最初は核を真ん中にして等倍で見せる。ピンチで縮めると全体が見える。
 func _layout() -> void:
 	var area := _tree_area()
-	_tree_origin = (area.position + (area.size - _tree_size()) * 0.5).max(Vector2(8.0, HEADER_HEIGHT))
+	var tree := _tree_size()
+	_zoom_min = minf(minf(area.size.x / tree.x, area.size.y / tree.y), 1.0)
+	if not _view_ready:
+		_view_ready = true
+		_view_center = _core()
+	_zoom = clampf(_zoom, _zoom_min, ZOOM_MAX)
 	_apply_view()
 	queue_redraw()
 
 
 func _tree_size() -> Vector2:
-	var cells := Vector2i.ONE
-	for def in Progress.upgrades:
-		cells = cells.max(def.cell + Vector2i.ONE)
-	return Vector2(cells) * CELL_SIZE
+	return _bounds.size
 
 
 ## 魔導樹を置く場所（右の説明欄と上下の帯を除いたところ）。
@@ -171,29 +236,30 @@ func _tree_area() -> Rect2:
 	return Rect2(0.0, HEADER_HEIGHT, size.x - SIDE_WIDTH, size.y - HEADER_HEIGHT - FOOTER_HEIGHT)
 
 
-## 拡大率と移動量を $TreeClip/Nodes に反映する。木の真ん中が置き場所から出ないように抑える。
+## 拡大率と見ている場所を $TreeClip/Nodes に反映する。魔導樹の外ばかり映らないように抑える。
 ## 置き場所の外にはみ出した部分は $TreeClip で切る。
 func _apply_view() -> void:
 	var area := _tree_area()
 	_clip.position = area.position
 	_clip.size = area.size
-	var half := _tree_size() * 0.5
-	var center := _tree_origin + half + _pan
-	var limit := (half * _zoom - area.size * 0.5).max(Vector2.ZERO)
-	var area_center := area.get_center()
-	center = center.clamp(area_center - limit, area_center + limit) if _zoom > ZOOM_MIN else _tree_origin + half
-	_pan = center - _tree_origin - half
+	var tree := _tree_size()
+	var half_view := area.size * 0.5 / _zoom
+	for i in 2:
+		if half_view[i] * 2.0 >= tree[i]:
+			_view_center[i] = tree[i] * 0.5
+		else:
+			_view_center[i] = clampf(_view_center[i], half_view[i], tree[i] - half_view[i])
 	_nodes.scale = Vector2.ONE * _zoom
-	_nodes.position = center - half * _zoom - area.position
+	_nodes.position = area.size * 0.5 - _view_center * _zoom
 
 
 ## 画面上の点 focus を動かさずに拡大率を変える。
 func _zoom_at(focus: Vector2, zoom: float) -> void:
-	var new_zoom := clampf(zoom, ZOOM_MIN, ZOOM_MAX)
+	var new_zoom := clampf(zoom, _zoom_min, ZOOM_MAX)
 	var local := (focus - _clip.position - _nodes.position) / _zoom
-	var new_position := focus - local * new_zoom
+	var new_position := focus - _clip.position - local * new_zoom
 	_zoom = new_zoom
-	_pan = new_position + _tree_size() * 0.5 * _zoom - _tree_origin - _tree_size() * 0.5
+	_view_center = (_clip.size * 0.5 - new_position) / _zoom
 	_apply_view()
 
 
@@ -226,7 +292,7 @@ func _input(event: InputEvent) -> void:
 		else:
 			_drag_distance += drag.relative.length()
 			if _drag_distance > DRAG_THRESHOLD:
-				_pan += drag.relative
+				_view_center -= drag.relative / _zoom
 				_apply_view()
 		_touches[drag.index] = at
 	elif event is InputEventMouseButton:
@@ -290,7 +356,7 @@ func _refresh_detail() -> void:
 	_buy_button.disabled = not Progress.can_buy(def)
 
 
-## この強化を買うと変わる数値（活動時間・攻撃間隔・射程）を並べる。
+## この強化を買うと変わる数値（体力・活動時間・攻撃間隔など）を並べる。
 ## 「何発で倒せるか」は出さない（ユーザー指示 2026-10-06）。
 func _change_lines(def: UpgradeDef) -> PackedStringArray:
 	var lines := PackedStringArray()
@@ -306,9 +372,12 @@ func _change_lines(def: UpgradeDef) -> PackedStringArray:
 	return lines
 
 
-## 強化によって変わる数値（活動時間・攻撃間隔・射程）を表示用の文字にする。
+## 強化によって変わる数値（体力・活動時間・攻撃間隔など）を表示用の文字にする。
 func _stat_texts(levels: Dictionary) -> Dictionary:
 	return {
+		"体力": "%d" % Stats.player_hp(levels),
+		"無敵時間": "%.1f秒" % Stats.invincible_time(levels),
+		"移動の速さ": "%d" % roundi(Stats.player_speed(levels)),
 		"活動時間": "%d秒" % roundi(Stats.run_time(levels)),
 		"発射間隔": "%.2f秒" % Stats.fire_interval(levels),
 		"射程": "%d" % roundi(Stats.fire_range(levels)),
