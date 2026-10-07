@@ -22,7 +22,6 @@ const SHEET_PIXEL := 1.0
 const FOOT_Y := 30.0
 ## 跳ねる動きの速さ（1秒に何周するか）
 const BOUNCE_RATE := 1.3
-const HP_BAR_COLOR := Color(1.0, 0.3, 0.3)
 const EDGE_MARGIN := 40.0
 const TOP_MARGIN := 140.0
 const SPAWN_TRIES := 30
@@ -106,10 +105,6 @@ func _update_facing() -> void:
 		_facing = velocity.normalized()
 
 
-func _bar_color() -> Color:
-	return HP_BAR_COLOR
-
-
 func _respawn() -> void:
 	if _placed and target != null:
 		position = _far_spot()
@@ -137,4 +132,4 @@ func _far_spot() -> Vector2:
 func _draw_body(flash_amount: float) -> void:
 	Toon.shadow(self, Vector2(0, RADIUS - 4.0), Vector2(RADIUS * 0.95, RADIUS * 0.32))
 	SpriteSheet.draw(self, _sheet(), _facing, fmod(_bob * BOUNCE_RATE, 1.0), Vector2(0, FOOT_Y),
-			SHEET_FOOT, SHEET_PIXEL, SHEET_DIRECTIONS, SHEET_FRAMES, flash_amount)
+			SHEET_FOOT, SHEET_PIXEL, SHEET_DIRECTIONS, SHEET_FRAMES, flash_amount, hp_fill())

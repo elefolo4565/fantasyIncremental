@@ -54,4 +54,4 @@ func _draw_body(flash_amount: float) -> void:
 	var regrowing := hp < max_hp and _since_hit >= Balance.get_float("oak_regen_delay") \
 			and Stats.effect(&"withering", Progress.levels) <= 0.0
 	SpriteSheet.draw(self, REGEN_SHEET if regrowing else SHEET, Vector2.DOWN, 0.0, Vector2(0, FOOT_Y),
-			SHEET_FOOT, SHEET_PIXEL, 1, 1, flash_amount)
+			SHEET_FOOT, SHEET_PIXEL, 1, 1, flash_amount, hp_fill())
