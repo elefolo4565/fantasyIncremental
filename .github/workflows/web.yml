@@ -96,6 +96,27 @@ jobs:
             exit 1
           fi
 
+      # GitHub Pages はどのファイルも10分キャッシュさせるので、ページを更新しても古い .pck を読むことがある。
+      # 版ごとにファイル名を変えて、新しい index.html からは必ず新しいファイルを読ませる。
+      - name: Rename engine files per build (cache busting)
+        run: |
+          set -euo pipefail
+          cd build/web
+          NAME="index-${GITHUB_SHA:0:7}"
+          for ext in js wasm pck audio.worklet.js audio.position.worklet.js; do
+            if [ -f "index.${ext}" ]; then mv "index.${ext}" "${NAME}.${ext}"; fi
+          done
+          sed -i \
+            -e "s|src=\"index.js\"|src=\"${NAME}.js\"|" \
+            -e "s|\"executable\":\"index\"|\"executable\":\"${NAME}\"|" \
+            -e "s|\"index.pck\"|\"${NAME}.pck\"|" \
+            -e "s|\"index.wasm\"|\"${NAME}.wasm\"|" \
+            index.html
+          grep -q "src=\"${NAME}.js\"" index.html
+          grep -q "\"executable\":\"${NAME}\"" index.html
+          test -f "${NAME}.pck" && test -f "${NAME}.wasm" && test -f "${NAME}.js"
+          ls
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
