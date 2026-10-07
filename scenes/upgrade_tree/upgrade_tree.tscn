@@ -105,6 +105,20 @@ focus_mode = 0
 theme_override_font_sizes/font_size = 18
 text = "効果音: オン"
 
+[node name="EditorButton" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 28.0
+offset_top = -100.0
+offset_right = 248.0
+offset_bottom = -62.0
+grow_vertical = 0
+focus_mode = 0
+theme_override_font_sizes/font_size = 18
+text = "敵エディタ（開発）"
+
 [node name="Side" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 11

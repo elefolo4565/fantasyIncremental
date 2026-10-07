@@ -1,11 +1,12 @@
 extends Node
-## ゲーム全体の流れ。魔導樹の画面とラン（1ステージ）を切り替える。
+## ゲーム全体の流れ。魔導樹の画面とラン（1ステージ）と、開発用の敵エディタを切り替える。
 ## 切り替えるときは画面をいったん暗くしてから次の画面を明るく出す（暗いあいだは触れない）。
 ## 起動引数に -- --smoke-run を付けると、全強化を最大にして最後のステージを直接始める（CI の動作確認用）。
 
 const TREE_SCENE := preload("res://scenes/upgrade_tree/upgrade_tree.tscn")
 const FONT := preload("res://assets/fonts/MPLUSRounded1c-ExtraBold-subset.ttf")
 const RUN_SCENE := preload("res://scenes/run/run.tscn")
+const EDITOR_SCENE := preload("res://scenes/enemy_editor/enemy_editor.tscn")
 
 ## 画面を切り替えるときに暗くする・明るくする時間（見た目だけ、秒）
 const FADE_OUT_TIME := 0.25
@@ -40,8 +41,16 @@ func _ready() -> void:
 func _show_tree() -> void:
 	var tree := TREE_SCENE.instantiate() as UpgradeTree
 	tree.start_requested.connect(_show_run)
+	tree.editor_requested.connect(_show_enemy_editor)
 	Bgm.play(&"tree")
 	_switch_to(tree)
+
+
+## 開発用の敵エディタ。閉じると魔導樹に戻る。
+func _show_enemy_editor() -> void:
+	var editor := EDITOR_SCENE.instantiate() as EnemyEditor
+	editor.closed.connect(_show_tree)
+	_switch_to(editor)
 
 
 func _show_run(stage_index: int) -> void:

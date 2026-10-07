@@ -1,6 +1,8 @@
+class_name MonsterModel
 extends Node3D
 ## 仮の敵の3Dモデル（スライム・突進スライム・王冠のスライム・森の木）。形は data/enemies.csv の model 列で選ぶ。Godot の基本図形だけで組み立てる。
-## render_enemies が絵に焼くときに使う。本番のモデルができたら assets/models/<名前>.glb に置けば、こちらは使われない。
+## tools/render_enemies が絵に焼くときと、敵エディタ（scenes/enemy_editor）の3Dの見た目に使う。
+## 本番のモデルができたら assets/models/<名前>.glb に置けば、焼くときはそちらが使われる。
 ## 足元が原点、正面が +Z。set_walk(0〜1) で跳ねる動きの1周のどこかの姿勢にする。
 
 const OUTLINE := Color(0.09, 0.07, 0.13)

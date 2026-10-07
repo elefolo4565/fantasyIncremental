@@ -4,6 +4,15 @@
 ゲームの中では3Dを使わず、焼いた絵を向きと動きに合わせて切り出して描くだけなので、敵が大量に出ても重くなりません。
 切り出しは `scripts/draw/sprite_sheet.gd`、使う側は `scenes/monster/monster.gd`（敵）と `scenes/oak/oak.gd`（木）です。
 
+## 敵エディタ（ゲームの中の開発用画面）
+
+魔導樹の画面の左下「敵エディタ（開発）」から開けます（`scenes/enemy_editor`）。スマホの Web 版でも動きます。
+一覧から敵を選び、数値・動き・形・色を変えると、中央で実際の動き（プレイヤー役つき）と3Dの見た目をその場で確かめられます。
+「CSVをコピー」で表をコピーして Claude に貼れば、data/enemies.csv に反映して絵も焼き直します。
+Godot のエディターから動かしているときは「保存」で data/enemies.csv に直接書き込みます（Web 版ではダウンロード）。
+書き出すまでの変更はその端末に下書きとして残ります（「元に戻す」で CSV の内容に戻ります）。
+色や形の変更は、焼き直すまで中央の動く絵には出ません（3Dの見た目には出ます）。まだ焼いていない新しい敵はスライムの絵で代わりに動きます。
+
 ## 新しい敵を足す
 
 1. `data/enemies.csv` に1行足す。
@@ -31,7 +40,7 @@ xvfb-run -a godot --path . --rendering-driver opengl3 res://tools/render_enemies
 
 ## モデルを差し替える
 
-- `assets/models/<ファイル名>.glb`（例: `slime.glb`・`slime_angry.glb`）を置くと、仮のモデル（`placeholder_monster.gd`）の代わりにそれを焼きます。
+- `assets/models/<ファイル名>.glb`（例: `slime.glb`・`slime_angry.glb`）を置くと、仮のモデル（`scenes/monster/monster_model.gd`）の代わりにそれを焼きます。
 - 足元を原点、正面を +Z にしてください。glb に `walk` という名前のアニメーションがあれば、その1周をコマに分けて焼きます。
 - 本番の素材に AI 生成のモデルや画像は使いません（CLAUDE.md）。
 

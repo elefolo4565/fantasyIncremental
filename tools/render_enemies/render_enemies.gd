@@ -1,7 +1,7 @@
 extends Node
 ## 敵（data/enemies.csv の全種類）と森の木の3Dモデルを絵に焼き、assets/sprites/enemies/ に保存する道具。
 ## ゲームには含まれない（開発用）。使い方は tools/render_enemies/README.md。
-## assets/models/<名前>.glb があればそれを、なければ仮のモデル（placeholder_monster.gd）を焼く。
+## assets/models/<名前>.glb があればそれを、なければ仮のモデル（scenes/monster/monster_model.gd）を焼く。
 
 const OUTPUT_DIR := "res://assets/sprites/enemies/"
 const MODEL_DIR := "res://assets/models/"
@@ -128,11 +128,10 @@ func _load_model(job: Dictionary) -> Node3D:
 	if ResourceLoader.exists(path):
 		print("render_enemies: ", path, " を焼きます")
 		return (load(path) as PackedScene).instantiate() as Node3D
-	var model := Node3D.new()
-	model.set_script(load("res://tools/render_enemies/placeholder_monster.gd"))
-	model.set("shape", job["shape"])
-	model.set("body_color", job["color"])
-	model.set("angry", job["angry"])
+	var model := MonsterModel.new()
+	model.shape = job["shape"]
+	model.body_color = job["color"]
+	model.angry = job["angry"]
 	return model
 
 
