@@ -51,6 +51,11 @@ func _process(delta: float) -> void:
 		queue_free()
 
 
+## 回収範囲の外からでも吸い寄せ始める（大地の吸引）。
+func pull() -> void:
+	_pulled = true
+
+
 func _draw() -> void:
 	var at := Vector2(0, -absf(sin(_time * BOB_SPEED)) * BOB_HEIGHT)
 	Toon.shadow(self, Vector2(0, SIZE * 0.6), Vector2(SIZE * 0.8, SIZE * 0.3))

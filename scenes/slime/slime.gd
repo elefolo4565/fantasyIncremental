@@ -3,6 +3,7 @@ extends Breakable
 ## モンスター（スライム）。稼ぎの元であり、同時に脅威でもある。
 ## ふらふら歩き回り、プレイヤーが近づくと寄ってくる。触れると touched_player を出す（ダメージは Run が与える）。
 ## 壊すと宝石（Gem）が手に入り、しばらくするとプレイヤーから離れた場所に湧き直す。
+## 魔導樹の「黄金スライム」があると、湧くたびに golden_chance の確率で金色になる（落とす宝石は Run が増やす）。
 
 signal touched_player(slime: Slime)
 
@@ -10,6 +11,8 @@ const RADIUS := 34.0
 ## 3Dモデルを8方向×4コマに焼いた絵（tools/render_enemies で作り直せる）。追ってきているときは赤い怒り顔。
 const SHEET := preload("res://assets/sprites/enemies/slime.png")
 const ANGRY_SHEET := preload("res://assets/sprites/enemies/slime_angry.png")
+## 魔導樹の「黄金スライム」で金色になったときの絵。
+const GOLDEN_SHEET := preload("res://assets/sprites/enemies/slime_golden.png")
 const SHEET_DIRECTIONS := 8
 const SHEET_FRAMES := 4
 ## コマの中で足元が来る位置（render_enemies.gd の foot と合わせる）。
@@ -28,6 +31,9 @@ const SPAWN_TRIES := 30
 var target: Node2D
 var speed := 0.0
 var contact_damage := 1
+## 湧くたびに金色になる確率（0〜1）
+var golden_chance := 0.0
+var golden := false
 
 var _wander := Vector2.ZERO
 var _wander_left := 0.0
@@ -85,8 +91,10 @@ func _body_scale() -> float:
 	return radius() / RADIUS
 
 
-## 子クラスで上書きできる。描く絵（追ってきているときは怒り顔）。
+## 子クラスで上書きできる。描く絵（金色のときは金色、追ってきているときは怒り顔）。
 func _sheet() -> Texture2D:
+	if golden:
+		return GOLDEN_SHEET
 	return ANGRY_SHEET if _chasing else SHEET
 
 
@@ -106,6 +114,7 @@ func _respawn() -> void:
 	if _placed and target != null:
 		position = _far_spot()
 	_placed = true
+	golden = randf() < golden_chance
 	super()
 
 

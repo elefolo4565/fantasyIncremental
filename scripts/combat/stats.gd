@@ -79,3 +79,34 @@ static func fire_range(levels: Dictionary) -> float:
 ## 落ちた素材を吸い寄せ始める距離（ピクセル）。
 static func pickup_radius(levels: Dictionary) -> float:
 	return Balance.get_float("pickup_radius") + effect(&"magnet", levels)
+
+
+## プレイヤーの体力の上限。生命の芽で増える。
+static func player_hp(levels: Dictionary) -> int:
+	return maxi(Balance.get_int("player_hp") + roundi(effect(&"vitality", levels)), 1)
+
+
+## 被弾したあとの無敵時間（秒）。守りの光で伸びる。
+static func invincible_time(levels: Dictionary) -> float:
+	return Balance.get_float("player_invincible_time") + effect(&"ward", levels)
+
+
+## プレイヤーの移動速度（ピクセル/秒）。俊足で上がる。
+static func player_speed(levels: Dictionary) -> float:
+	return Balance.get_float("player_speed") + effect(&"swift", levels)
+
+
+## 背水: 体力が残り1のときの撃つ間隔（秒）。背水がなければ普段と同じ。
+static func fire_interval_at(hp: int, levels: Dictionary) -> float:
+	var boost := effect(&"last_stand", levels) if hp == 1 else 0.0
+	return Balance.get_float("fire_interval") / (1.0 + effect(&"quick_cast", levels) + boost)
+
+
+## 倒した敵（ボス以外）が落とす素材の数。豊穣で増える。
+static func drop_amount(base: int, levels: Dictionary) -> int:
+	return base + roundi(effect(&"harvest", levels))
+
+
+## ボスが落とす宝石の数。懸賞で増える（端数は切り上げ）。
+static func boss_reward(base: int, levels: Dictionary) -> int:
+	return ceili(base * (1.0 + effect(&"bounty", levels) / 100.0))

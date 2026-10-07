@@ -18,6 +18,8 @@ const JOBS := [
 			"directions": 8, "frames": 4, "camera_size": 2.2, "foot": Vector2(64, 104)},
 	{"name": "slime_angry", "shape": &"slime", "color": Color(1.0, 0.45, 0.62), "angry": true,
 			"directions": 8, "frames": 4, "camera_size": 2.2, "foot": Vector2(64, 104)},
+	{"name": "slime_golden", "shape": &"slime", "color": Color(1.0, 0.82, 0.2), "angry": false,
+			"directions": 8, "frames": 4, "camera_size": 2.2, "foot": Vector2(64, 104)},
 	{"name": "dasher", "shape": &"dasher", "color": Color(1.0, 0.62, 0.2), "angry": false,
 			"directions": 8, "frames": 4, "camera_size": 2.2, "foot": Vector2(64, 104)},
 	{"name": "dasher_windup", "shape": &"dasher", "color": Color(1.0, 0.95, 0.3), "angry": true,

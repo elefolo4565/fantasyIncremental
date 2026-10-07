@@ -9,7 +9,12 @@ var max_level := 1
 var value := 0.0
 var gem_costs: PackedInt32Array = []
 var wood_costs: PackedInt32Array = []
-var cell := Vector2i.ZERO
+## 魔導樹の軸（attack / life / income）
+var axis: StringName
+## 中心から何段目か
+var ring := 1
+## 軸の向きからずらす角度（度）
+var angle := 0.0
 var desc := ""
 
 
@@ -22,7 +27,9 @@ static func from_row(row: Dictionary) -> UpgradeDef:
 	def.value = String(row.get("value", "0")).to_float()
 	def.gem_costs = _parse_costs(row.get("cost_gem", ""), def.max_level)
 	def.wood_costs = _parse_costs(row.get("cost_wood", ""), def.max_level)
-	def.cell = Vector2i(String(row.get("col", "0")).to_int(), String(row.get("row", "0")).to_int())
+	def.axis = StringName(row.get("axis", ""))
+	def.ring = maxi(String(row.get("ring", "1")).to_int(), 1)
+	def.angle = String(row.get("angle", "0")).to_float()
 	def.desc = row.get("desc", "")
 	return def
 

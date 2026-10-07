@@ -22,6 +22,7 @@ xvfb-run -a godot --path . --rendering-driver opengl3 res://tools/render_enemies
 | --- | --- | --- |
 | `slime.png` | 青いスライム（うろついているとき） | 8×4 |
 | `slime_angry.png` | 赤い怒り顔のスライム（追ってきているとき） | 8×4 |
+| `slime_golden.png` | 金色のスライム（魔導樹の「黄金スライム」） | 8×4 |
 | `dasher.png` | 角のある橙色の突進スライム | 8×4 |
 | `dasher_windup.png` | 黄色い怒り顔の突進スライム（予備動作と突進のあいだ） | 8×4 |
 | `boss.png` | 王冠をかぶった紫のスライム | 8×4 |
