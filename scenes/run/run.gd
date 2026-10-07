@@ -626,6 +626,8 @@ func _on_boss_defeated() -> void:
 	for pickup in _lying_pickups():
 		_add_materials(pickup.kind, pickup.amount, pickup.global_position)
 		pickup.queue_free()
+	# ボスの曲を止めて、めでたい曲（ジングル）だけを聞かせる
+	Bgm.stop()
 	Sfx.play(&"clear")
 	_finish()
 

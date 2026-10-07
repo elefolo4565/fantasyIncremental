@@ -35,6 +35,16 @@ func play(track: StringName) -> void:
 	_fade.tween_callback(_start.bind(track))
 
 
+## 曲を小さくしてから止める（ステージクリアの曲を目立たせるときなど）。
+func stop() -> void:
+	_current = &""
+	if _fade != null:
+		_fade.kill()
+	_fade = create_tween()
+	_fade.tween_property(_player, "volume_db", SILENT_DB, Balance.get_float("bgm_fade_time"))
+	_fade.tween_callback(_player.stop)
+
+
 func _start(track: StringName) -> void:
 	_player.stream = load(TRACKS[track])
 	_player.volume_db = Balance.get_float("bgm_volume_db")
