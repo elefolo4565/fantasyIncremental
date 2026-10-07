@@ -76,6 +76,9 @@ const TIME_PULSE_SCALE := 0.35
 const TICK_PITCH := 1.0
 const TICK_LAST_PITCH := 1.5
 const TICK_VOLUME_DB := -4.0
+## 結果のパネルが出てくるまでの時間（見た目だけ、秒）
+const RESULT_DROP_TIME := 0.6
+const RESULT_RISE_TIME := 0.45
 
 ## 生成する側が add_child の前に入れる
 var stage_index := 0
@@ -741,7 +744,23 @@ func _finish() -> void:
 		lines.append("%d体倒すとボスが出る" % _stage.boss_after)
 	_result_body.text = "\n".join(lines)
 	_result_panel.visible = true
+	_animate_result()
 	_update_hud()
+
+
+## 結果の出し方。時間切れ・やられたときは上から落ちて弾み、クリアのときは下から跳ね上がる。
+func _animate_result() -> void:
+	var rest := _result_panel.position
+	var from := get_viewport_rect().size.y
+	var tween := create_tween()
+	if _cleared:
+		_result_panel.position = rest + Vector2(0, from)
+		tween.tween_property(_result_panel, "position", rest, RESULT_RISE_TIME) \
+				.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	else:
+		_result_panel.position = rest - Vector2(0, from)
+		tween.tween_property(_result_panel, "position", rest, RESULT_DROP_TIME) \
+				.set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
 
 
 ## 遺品: クリア以外で終わったとき、落ちたままの素材の一部を持ち帰る（種類ごとに端数は切り捨て）。
