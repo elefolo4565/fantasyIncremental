@@ -6,6 +6,7 @@ extends RefCounted
 ## 焼き方は tools/render_enemies/README.md。
 
 const SPRITE_DIR := "res://assets/sprites/enemies/"
+const FALLBACK_SHEET := "res://assets/sprites/enemies/slime.png"
 
 var id: StringName
 var name := ""
@@ -24,6 +25,7 @@ var model: StringName
 ## 体の色（倒したときの破片の色にも使う）
 var color := Color.WHITE
 var angry_color := Color.WHITE
+var memo := ""
 
 var _sheets: Dictionary = {}
 
@@ -42,7 +44,28 @@ static func from_row(row: Dictionary) -> EnemyDef:
 	def.model = StringName(row.get("model", "slime"))
 	def.color = _parse_color(row.get("color", ""), Color.WHITE)
 	def.angry_color = _parse_color(row.get("angry_color", ""), def.color)
+	def.memo = row.get("memo", "")
 	return def
+
+
+## enemies.csv の1行に戻す（敵エディタが書き出すとき）。
+func to_row() -> Dictionary:
+	return {
+		"id": String(id), "name": name, "move": String(move), "size": _num(size),
+		"hp_rate": _num(hp_rate), "gem_rate": _num(gem_rate), "speed_rate": _num(speed_rate),
+		"contact_damage": str(contact_damage), "golden": "1" if golden else "0", "model": String(model),
+		"color": color.to_html(false), "angry_color": angry_color.to_html(false), "memo": memo,
+	}
+
+
+func copy() -> EnemyDef:
+	return EnemyDef.from_row(to_row())
+
+
+## 小数の末尾の 0 を落とした書き方（1.50 → 1.5、2.0 → 2）。
+static func _num(value: float) -> String:
+	var text := "%.2f" % value
+	return text.rstrip("0").rstrip(".")
 
 
 ## "4dc7ff" のような16進の色。書かれていない・読めないときは fallback。
@@ -74,6 +97,8 @@ func sheet(variant: StringName = &"") -> Texture2D:
 	elif variant != &"":
 		texture = sheet()
 	else:
-		push_error("敵の絵 %s がありません（tools/render_enemies で焼く）" % path)
+		# まだ焼いていない新しい敵（敵エディタで足したばかりなど）は、スライムの絵で代わりに見せる
+		push_warning("敵の絵 %s がまだありません（tools/render_enemies で焼く）。スライムの絵で代わりに出します" % path)
+		texture = load(FALLBACK_SHEET) as Texture2D
 	_sheets[variant] = texture
 	return texture

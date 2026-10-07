@@ -46,6 +46,7 @@ tools/                開発用の道具（書き出しに含めない）
 - 敵は最終的に100種ほどになる予定なので、**敵ごとにシーンやスクリプトを作らない**（2026-10-07 ユーザー合意）。
   敵の種類は `data/enemies.csv` の1行、どのステージに何体出すかは `data/stages.csv` の `enemies` 列。動きは `scenes/monster/moves/` の部品（`MonsterMove`）を `move` 列で選ぶ。
   新しい動きが要るときだけ部品を1つ足す。絵は `tools/render_enemies` で表から焼く（手順は tools/render_enemies/README.md）。
+  敵の数値はゲームの中の開発用の敵エディタ（`scenes/enemy_editor`、魔導樹の画面の左下）でも触れる。ユーザーがエディタの「CSVをコピー」で貼ってきた表は、そのまま `data/enemies.csv` に反映し、絵を焼き直してPRにする。
 - スクリプト先頭に `##` で「このシーンは何をするか」を1〜3行で書く。
 - 画面の文字は日本語でよい。フォントは `assets/fonts/MPLUSRounded1c-ExtraBold-subset.ttf`（OFL。`scenes/main/main.gd` で既定テーマの `default_font` と `ThemeDB.fallback_font` に設定している。PC では OS のフォントで補われて気づけないので、Web で文字化けしていないか確かめる。`gui/theme/custom_font` は CI の初回インポートでエラーになるので使わない）。
   ASCII・かな・記号・JIS第1水準の漢字だけに絞ってあるので、第2水準の漢字（例: 「呪」「贄」など）を使うと表示されない。使いたいときは元のフォントから作り直す。
