@@ -4,3 +4,7 @@ dasher,突進スライム,dash,34,1,1,1,1,0,dasher,ff9e33,fff24d,,頭に角。�
 king_slime,スライムの王,chase,64.6,1,1,1,1,0,king,9e6bff,9e6bff,,平原と森のボス。いつも追ってくる。耐久・宝石・速さは stages.csv の boss_hp・boss_gem・boss_speed に掛ける
 gunner,弓スライム,wander_chase,34,1,1.5,0.8,1,0,slime,8ad35a,ff739e,arrow_fan,弾を撃つ敵の見本（まだどのステージにも出ていない）。うろつきながらプレイヤーへ矢を3本撃つ
 bomber,爆弾スライム,wander_chase,34,1.5,2,0.6,1,0,dasher,a0a0b8,ff6b4d,bomb_lob,弾を撃つ敵の見本（まだどのステージにも出ていない）。遅いがプレイヤーのいる所へ爆弾を投げる
+goblin,ゴブリン,wander_chase,30,1,1.2,1.15,1,0,goblin,7cc04a,7cc04a,,見た目の見本（まだどのステージにも出ていない）。小柄ですばしこい
+bat,こうもり,wander_chase,28,0.6,1,1.5,1,0,bat,7a5ac8,7a5ac8,,見た目の見本（まだどのステージにも出ていない）。宙に浮いて羽ばたく。もろいが速い
+warrior,戦士,wander_chase,34,2,2,0.9,1,0,warrior,4f7fd6,4f7fd6,,見た目の見本（まだどのステージにも出ていない）。鎧の色は color。剣と盾を持つ
+ogre,オーガ,chase,50,3,3,0.6,2,0,ogre,c9a66b,c9a66b,,見た目の見本（まだどのステージにも出ていない）。大きくて遅いがしつこく追ってくる

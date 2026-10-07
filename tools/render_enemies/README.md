@@ -18,7 +18,7 @@ Godot のエディターから動かしているときは「保存」で data/en
 1. `data/enemies.csv` に1行足す。
    - `move` は動きの部品（`scenes/monster/moves/`）: `wander_chase`（うろつき、近づくと追う）・`dash`（予備動作のあと突進）・`chase`（いつも追う、ボス向け）
    - `size` は体の半径（当たり判定）、`hp_rate`・`gem_rate`・`speed_rate` はステージの基準（stages.csv の `enemy_*`・ボスなら `boss_*`）に掛ける倍率
-   - `model` は仮モデルの形（`slime`・`dasher`・`king`）、`color`・`angry_color` は体の色（16進）
+   - `model` は仮モデルの形（`slime`・`dasher`・`king`・`goblin`・`bat`・`warrior`・`ogre`）、`color`・`angry_color` は体の色（16進）
 2. 下の手順で焼き直す（`<id>.png`・`<id>_angry.png`・金色になれる敵は `<id>_golden.png` ができる）。
 3. `data/stages.csv` の `enemies` に `<id>:数` を足す（`|` でつなぐ）。ボスにするなら `boss` 列に id を書く。
 
