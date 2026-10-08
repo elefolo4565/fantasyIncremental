@@ -3,6 +3,7 @@ extends Area2D
 ## 魔法弾。まっすぐ飛び、当たった物の耐久を減らす。
 ## 草地（Grass）の中では遅くなり、そのぶん射程を余計に使う（遅くなっても進む距離は遅くなる前の分だけ数える）。
 ## 魔導樹の Pierce で貫通し、Ricochet で最後の1発のあと別の物へ跳ね返る。
+## 当たる相手は物理の層 world（1番、木）と enemy（2番、敵）。bolt.tscn の collision_mask = 3。
 
 const RADIUS := 7.0
 const COLOR := Color(0.45, 0.95, 1.0)
